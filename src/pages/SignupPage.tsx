@@ -23,11 +23,28 @@ const SignupPage = () => {
     const [nickname, setNickname] = useState('');
     const [email, setEmail] = useState('');
 
+    // 👇 [추가] 이메일 형식을 검사하는 함수 (공부용 주석)
+    const validateEmail = (email: string) => {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+    };
+
     // 회원가입 버튼을 눌렀을 때 실행될 함수
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        // 👇 [추가] 이메일 형식 체크
+        if (!validateEmail(email)) {
+            alert('올바른 이메일 형식이 아닙니다.');
+            return;
+        }
+
         try {
+            /** * [중요] 아이디/닉네임 중복 확인 로직
+             * 백엔드에 중복 확인 API가 없다면 가입 시도 시 백엔드에서 에러를 던져줍니다.
+             * 현재는 가입 요청(api.post) 시 에러가 나면 catch문에서 처리하게 됩니다.
+             */
+
             // 백엔드의 UserController (POST /api/users) 로 데이터 전송
             await api.post('/users', {
                 loginId: loginId,
@@ -40,9 +57,14 @@ const SignupPage = () => {
             alert('회원가입이 완료되었습니다! 로그인해주세요.');
             navigate('/login'); // 가입 성공 시 로그인 화면으로 자동 이동
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert('회원가입에 실패했습니다. 입력하신 정보를 확인해주세요.');
+            // 👇 [추가] 중복 등 에러 메시지 처리
+            if (error.response && error.response.status === 409) {
+                alert('이미 존재하는 아이디 또는 닉네임입니다.');
+            } else {
+                alert('회원가입에 실패했습니다. 입력하신 정보를 확인해주세요.');
+            }
         }
     };
 

@@ -12,7 +12,8 @@ function App() {
     return (
         <BrowserRouter>
             <Routes>
-                <Route path="/" element={<Navigate to="/login" replace />} />
+                {/* 👇 [수정됨] 처음 사이트에 들어왔을 때(/) 다짜고짜 로그인이 아닌 메인 게시판으로 보냅니다. */}
+                <Route path="/" element={<Navigate to="/BoardPage" replace />} />
                 <Route path="/login" element={<LoginPage />} />
 
                 {/* 👇 회원가입 페이지 경로 추가 */}
