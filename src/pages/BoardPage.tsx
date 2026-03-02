@@ -54,8 +54,12 @@ const BoardPage = () => {
         if (activeBoardId === null) return;
         const fetchPosts = async () => {
             try {
-                // 백엔드의 PostController GET /api/posts?boardId={activeBoardId} 형태에 맞춤
-                const response = await api.get(`/posts?boardId=${activeBoardId}`);
+                /**
+                 * [수정됨] 백엔드의 PostController 형식에 맞게 URL 변경
+                 * 이전: /posts?boardId=${activeBoardId}
+                 * 현재: /boards/${activeBoardId}/posts (@GetMapping("/boards/{boardId}/posts"))
+                 */
+                const response = await api.get(`/boards/${activeBoardId}/posts`);
                 setPosts(response.data);
             } catch (error) {
                 console.error('게시글 로딩 실패', error);
@@ -113,7 +117,15 @@ const BoardPage = () => {
                         </tr>
                     ) : (
                         posts.map((post) => (
-                            <tr key={post.id} className="cursor-pointer hover:bg-gray-50">
+                            <tr
+                                key={post.id}
+                                className="cursor-pointer hover:bg-gray-50"
+                                /**
+                                 * [추가됨] 행을 클릭하면 해당 게시글의 상세 페이지로 이동합니다.
+                                 * 백틱(`)을 사용해 post.id 값을 URL 주소에 동적으로 삽입합니다.
+                                 */
+                                onClick={() => navigate(`/posts/${post.id}`)}
+                            >
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className="font-medium text-gray-900">{post.title}</span>
                                 </td>
@@ -128,10 +140,17 @@ const BoardPage = () => {
                 </table>
             </div>
 
-            {/* 글쓰기 버튼 */}
+            {/* 👇 [수정됨] 글쓰기 버튼 클릭 시 현재 선택된 게시판 번호를 들고 글쓰기 페이지로 이동 */}
             {isLoggedIn && (
                 <div className="flex justify-end mt-4">
-                    <button className="px-4 py-2 font-bold text-white bg-blue-600 rounded hover:bg-blue-700">
+                    <button
+                        onClick={() => {
+                            if (activeBoardId) {
+                                navigate(`/boards/${activeBoardId}/write`);
+                            }
+                        }}
+                        className="px-4 py-2 font-bold text-white bg-blue-600 rounded hover:bg-blue-700"
+                    >
                         글쓰기
                     </button>
                 </div>
