@@ -22,6 +22,7 @@ const LoginPage = () => {
 
             // 성공하면 백엔드가 준 accessToken을 브라우저 금고(localStorage)에 저장
             localStorage.setItem('accessToken', response.data.accessToken);
+            localStorage.setItem('userId', response.data.userId);
             alert('로그인 성공!');
 
             // 나중에 메인 화면으로 이동하는 코드를 여기에 추가할 거예요.
