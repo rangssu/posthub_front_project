@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // 1. 기본 설정: 스프링부트 주소를 미리 적어둡니다.
 const api = axios.create({
-    baseURL: 'http://localhost:8080/api',
+    baseURL: import.meta.env.VITE_API_URL, // 변경된 부분!
 });
 
 // 2. 인터셉터: 백엔드로 요청을 보내기 직전에 가로채서 토큰을 몰래(?) 넣어줍니다.
