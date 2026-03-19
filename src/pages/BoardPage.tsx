@@ -37,7 +37,7 @@ const BoardPage = () => {
     const fetchBoards = async () => {
         try {
             const response = await api.get('/boards');
-            setBoards(response.data);
+            setBoards(response.data.content);
             if (response.data.length > 0) {
                 setActiveBoardId((prev) => prev ? prev : response.data[0].id); // 첫 번째 탭 자동 선택
             } else {
