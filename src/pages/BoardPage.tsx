@@ -37,9 +37,16 @@ const BoardPage = () => {
     const fetchBoards = async () => {
         try {
             const response = await api.get('/boards');
-            setBoards(response.data.content);
-            if (response.data.length > 0) {
-                setActiveBoardId((prev) => prev ? prev : response.data[0].id); // 첫 번째 탭 자동 선택
+
+            // [에러 해결] 백엔드에서 배열을 바로 주는지, 객체로 포장해서 주는지 확인하여 배열만 안전하게 추출합니다.
+            // 데이터가 없거나 형식이 맞지 않을 경우를 대비해 빈 배열([])을 기본값으로 설정합니다.
+            const boardsData = Array.isArray(response.data) ? response.data : (response.data.content || []);
+
+            setBoards(boardsData);
+
+            // 추출한 배열의 길이를 기준으로 탭을 설정합니다.
+            if (boardsData.length > 0) {
+                setActiveBoardId((prev) => prev ? prev : boardsData[0].id); // 첫 번째 탭 자동 선택
             } else {
                 setActiveBoardId(null);
                 setPosts([]);
@@ -59,7 +66,12 @@ const BoardPage = () => {
         const fetchPosts = async () => {
             try {
                 const response = await api.get(`/boards/${activeBoardId}/posts`);
-                setPosts(response.data);
+
+                // [에러 해결] 페이징 처리된 객체({ content: [...] })가 올 경우를 대비해 알맹이만 꺼냅니다.
+                // 배열이 아니면 map 함수에서 에러가 나므로, 반드시 배열 형태만 상태에 저장되도록 처리합니다.
+                const postsData = Array.isArray(response.data) ? response.data : (response.data.content || []);
+
+                setPosts(postsData);
             } catch (error) {
                 console.error('게시글 로딩 실패', error);
             }
