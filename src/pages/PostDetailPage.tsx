@@ -44,7 +44,8 @@ const PostDetailPage = () => {
                 setPost(response.data);
             } catch (error) {
                 alert('게시글을 불러올 수 없습니다.');
-                navigate('/BoardPage');
+                // 👇 [수정됨] 대문자 제거된 /boards 로 이동
+                navigate('/boards');
             }
         };
 
@@ -67,7 +68,8 @@ const PostDetailPage = () => {
         try {
             await api.delete(`/posts/${postId}`);
             alert('게시글이 삭제되었습니다.');
-            navigate('/BoardPage');
+            // 👇 [수정됨] 대문자 제거된 /boards 로 이동
+            navigate('/boards');
         } catch (error) {
             console.error('게시글 삭제 실패:', error);
             alert('게시글 삭제에 실패했습니다.');

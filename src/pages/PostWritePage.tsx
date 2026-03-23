@@ -28,14 +28,18 @@ const PostWritePage = () => {
              * 백엔드 PostController의 @PostMapping("/board/{boardId}/posts") 로 요청을 보냅니다.
              * 로그인할 때 발급받아 axios 인터셉터에 설정된 JWT 토큰이 자동으로 같이 날아갑니다.
              */
-            await api.post(`/board/${boardId}/posts`, {
+            const response = await api.post(`/board/${boardId}/posts`, {
                 title: title,
                 content: content
             });
 
             alert('게시글이 성공적으로 등록되었습니다.');
-            // 글 작성이 끝나면 게시판 메인 페이지로 돌아갑니다.
-            navigate('/BoardPage');
+
+            // 👇 [수정됨] 글 작성이 끝나면 방금 작성한 글의 상세 페이지(detail)로 넘어갑니다.
+            // 백엔드에서 리턴해준 게시글의 ID (response.data)를 이용합니다.
+            const newPostId = response.data;
+            navigate(`/posts/${newPostId}`);
+
         } catch (error) {
             console.error('글 작성 에러:', error);
             alert('글 작성에 실패했습니다.');

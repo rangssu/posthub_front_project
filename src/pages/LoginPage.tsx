@@ -13,6 +13,24 @@ const LoginPage = () => {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault(); // 버튼 누르면 새로고침 되는 기본 현상 방지
 
+        // 👇 [추가] 프론트엔드 공백 및 길이 검증
+        if (!loginId.trim()) {
+            alert('아이디를 입력해주세요.');
+            return;
+        }
+        if (loginId.length < 4 || loginId.length > 20) {
+            alert('아이디는 4자 이상 20자 이하여야 합니다.');
+            return;
+        }
+        if (!password.trim()) {
+            alert('비밀번호를 입력해주세요.');
+            return;
+        }
+        if (password.length < 8 || password.length > 20) {
+            alert('비밀번호는 8자 이상 20자 이하여야 합니다.');
+            return;
+        }
+
         try {
             // 백엔드로 로그인 요청 보내기 (작성하신 AuthController의 /api/auth/login 과 연결)
             const response = await api.post('/auth/login', {
@@ -25,9 +43,8 @@ const LoginPage = () => {
             localStorage.setItem('userId', response.data.userId);
             alert('로그인 성공!');
 
-            // 나중에 메인 화면으로 이동하는 코드를 여기에 추가할 거예요.
-            // 👇 [추가] 로그인 성공 시 메인 게시판 페이지로 이동합니다.
-            navigate('/BoardPage');
+            // 👇 [수정됨] 로그인 성공 시 대문자가 제거된 /boards 페이지로 이동합니다.
+            navigate('/boards');
 
         } catch (error) {
             alert('아이디 또는 비밀번호를 확인해주세요.');

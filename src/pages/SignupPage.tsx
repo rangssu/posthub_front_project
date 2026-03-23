@@ -33,6 +33,20 @@ const SignupPage = () => {
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        // 👇 [추가] 프론트엔드 공백 및 길이 검증
+        if (!loginId.trim() || !password.trim() || !name.trim() || !nickname.trim() || !email.trim()) {
+            alert('모든 항목을 공백 없이 입력해주세요.');
+            return;
+        }
+        if (loginId.length < 4 || loginId.length > 20) {
+            alert('아이디는 4자 이상 20자 이하여야 합니다.');
+            return;
+        }
+        if (password.length < 8 || password.length > 20) {
+            alert('비밀번호는 8자 이상 20자 이하여야 합니다.');
+            return;
+        }
+
         // 👇 [추가] 이메일 형식 체크
         if (!validateEmail(email)) {
             alert('올바른 이메일 형식이 아닙니다.');

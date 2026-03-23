@@ -12,13 +12,15 @@ function App() {
     return (
         <BrowserRouter>
             <Routes>
-                {/* 👇 [수정됨] 처음 사이트에 들어왔을 때(/) 다짜고짜 로그인이 아닌 메인 게시판으로 보냅니다. */}
-                <Route path="/" element={<Navigate to="/BoardPage" replace />} />
+                {/* 👇 [수정됨] 처음 사이트에 들어왔을 때(/) 대문자가 없는 /boards 로 보냅니다. */}
+                <Route path="/" element={<Navigate to="/boards" replace />} />
                 <Route path="/login" element={<LoginPage />} />
 
                 {/* 👇 회원가입 페이지 경로 추가 */}
                 <Route path="/signup" element={<SignupPage />} />
-                <Route path="/BoardPage" element={<BoardPage />} />
+
+                {/* 👇 [수정됨] URL에서 대문자를 지우고 /boards 로 맞췄습니다. */}
+                <Route path="/boards" element={<BoardPage />} />
 
                 {/* 👇 [추가] 게시글 상세 페이지 경로 추가 :postId는 URL에서 동적으로 변하는 파라미터(게시글 번호)를 의미합니다.*/}
                 <Route path="/posts/:postId" element={<PostDetailPage />} />

@@ -23,12 +23,17 @@ const BoardPage = () => {
     const [activeBoardId, setActiveBoardId] = useState<number | null>(null);
     const [posts, setPosts] = useState<Post[]>([]);
 
+    // 👇 [추가] 프론트 페이징 처리를 위한 상태 추가
+    const [currentPage, setCurrentPage] = useState<number>(0); // 스프링은 0페이지부터 시작
+    const [totalPages, setTotalPages] = useState<number>(0);
+
     // 1. 로그인 상태 확인 (토큰이 있는지)
     const isLoggedIn = !!localStorage.getItem('accessToken');
 
     // 2. 로그아웃 기능
     const handleLogout = () => {
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('userId'); // 👈 [추가] 남아있던 userId 값도 스토리지에서 완벽하게 삭제합니다!
         alert('로그아웃 되었습니다.');
         window.location.reload();
     };
@@ -60,24 +65,37 @@ const BoardPage = () => {
         fetchBoards();
     }, []);
 
-    // 4. 활성화된 탭이 바뀔 때마다 해당 게시판의 글 목록 불러오기
+    // 👇 [추가] 탭(activeBoardId)이 바뀔 때마다 페이지를 0(첫 페이지)으로 초기화합니다.
+    useEffect(() => {
+        if (activeBoardId !== null) {
+            setCurrentPage(0);
+        }
+    }, [activeBoardId]);
+
+    // 4. 활성화된 탭이 바뀌거나 페이지 번호(currentPage)가 바뀔 때마다 해당 게시판의 글 목록 불러오기
     useEffect(() => {
         if (activeBoardId === null) return;
         const fetchPosts = async () => {
             try {
-                const response = await api.get(`/boards/${activeBoardId}/posts`);
+                // 👇 [수정됨] URL 파라미터로 현재 페이지 번호를 넘겨줍니다. size는 기본값 10을 사용합니다.
+                const response = await api.get(`/boards/${activeBoardId}/posts?page=${currentPage}&size=10`);
 
                 // [에러 해결] 페이징 처리된 객체({ content: [...] })가 올 경우를 대비해 알맹이만 꺼냅니다.
                 // 배열이 아니면 map 함수에서 에러가 나므로, 반드시 배열 형태만 상태에 저장되도록 처리합니다.
-                const postsData = Array.isArray(response.data) ? response.data : (response.data.content || []);
-
-                setPosts(postsData);
+                if (response.data && response.data.content) {
+                    setPosts(response.data.content);
+                    setTotalPages(response.data.totalPages); // 👇 [추가] 전체 페이지 수를 상태에 저장
+                } else {
+                    const postsData = Array.isArray(response.data) ? response.data : [];
+                    setPosts(postsData);
+                    setTotalPages(1);
+                }
             } catch (error) {
                 console.error('게시글 로딩 실패', error);
             }
         };
         fetchPosts();
-    }, [activeBoardId]);
+    }, [activeBoardId, currentPage]); // 👈 [추가] currentPage가 바뀔 때도 useEffect가 다시 실행되도록 추가
 
     // [추가] 게시판 생성 기능
     const handleCreateBoard = async () => {
@@ -233,6 +251,42 @@ const BoardPage = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* 👇 [추가] 페이징 버튼 영역 (데이터가 있을 때만 렌더링) */}
+            {totalPages > 0 && (
+                <div className="flex items-center justify-center p-4 bg-white border-t border-gray-200 space-x-2">
+                    <button
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
+                        disabled={currentPage === 0}
+                        className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        이전
+                    </button>
+
+                    {/* Array.from을 이용해 totalPages 숫자만큼 버튼을 생성합니다. */}
+                    {Array.from({ length: totalPages }, (_, i) => (
+                        <button
+                            key={i}
+                            onClick={() => setCurrentPage(i)}
+                            className={`px-3 py-1 text-sm font-medium border rounded-md ${
+                                currentPage === i
+                                    ? 'bg-blue-50 text-blue-600 border-blue-500' // 현재 선택된 페이지
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' // 선택되지 않은 페이지
+                            }`}
+                        >
+                            {i + 1}
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))}
+                        disabled={currentPage === totalPages - 1}
+                        className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        다음
+                    </button>
+                </div>
+            )}
 
             {/* 글쓰기 버튼 */}
             {isLoggedIn && activeBoardId && (
