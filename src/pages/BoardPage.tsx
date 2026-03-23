@@ -15,6 +15,7 @@ interface Post {
     viewCount: number;
     createdAt: string;
     content: string;
+    userName: string; // 👇 [추가] 백엔드(PostListResponse)에서 보내주는 작성자 닉네임을 받기 위한 속성 추가
 }
 
 const BoardPage = () => {
@@ -220,6 +221,8 @@ const BoardPage = () => {
                     <thead className="bg-gray-50">
                     <tr>
                         <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">제목</th>
+                        {/* 👇 [추가] 제목과 작성일 사이에 '작성자' 열 추가 */}
+                        <th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">작성자</th>
                         <th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">작성일</th>
                         <th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">조회수</th>
                     </tr>
@@ -227,7 +230,7 @@ const BoardPage = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                     {posts.length === 0 ? (
                         <tr>
-                            <td colSpan={3} className="px-6 py-10 text-center text-gray-500">작성된 게시글이 없습니다.</td>
+                            <td colSpan={4} className="px-6 py-10 text-center text-gray-500">작성된 게시글이 없습니다.</td>
                         </tr>
                     ) : (
                         posts.map((post) => (
@@ -237,7 +240,14 @@ const BoardPage = () => {
                                 onClick={() => navigate(`/posts/${post.id}`)}
                             >
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className="font-medium text-gray-900">{post.title}</span>
+                                    {/* 👇 [수정됨] 글자 수가 20자가 넘어가면 그 뒤는 자르고 '...'을 붙이도록 삼항 연산자 사용 */}
+                                    <span className="font-medium text-gray-900" title={post.title}>
+                                        {post.title.length > 20 ? post.title.substring(0, 20) + '...' : post.title}
+                                    </span>
+                                </td>
+                                {/* 👇 [추가] 작성자 닉네임을 출력하는 셀 추가 */}
+                                <td className="px-6 py-4 text-center text-gray-500 whitespace-nowrap">
+                                    {post.userName}
                                 </td>
                                 <td className="px-6 py-4 text-center text-gray-500 whitespace-nowrap">
                                     {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
