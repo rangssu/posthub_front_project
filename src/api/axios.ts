@@ -27,24 +27,42 @@ api.interceptors.response.use(
         return response;
     },
     (error) => {
-        // 에러가 발생했을 때, 백엔드에서 보낸 상태 코드(status)가 401(미인증) 또는 403(권한없음)인 경우
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-            console.warn("토큰이 만료되었거나 권한이 없습니다. 로그아웃 처리합니다.");
+        /*
+         * 401(미인증)과 403(권한 부족)은 반드시 구분해야 합니다.
+         * 둘 다 로그아웃 처리하면 "남의 글을 수정하려 했다" 같은 정상적인 거부에서도
+         * 멀쩡히 로그인된 사용자가 강제로 튕겨나갑니다.
+         */
+        const status = error.response?.status;
 
-            // 스토리지를 비워서 남아있는 찌꺼기를 깔끔하게 무효화시킵니다.
+        if (status === 401) {
+            console.warn('인증이 만료되었습니다. 로그아웃 처리합니다.');
+
             localStorage.removeItem('accessToken');
             localStorage.removeItem('userId');
+            localStorage.removeItem('role');
 
-            // 사용자에게 알림을 띄웁니다.
-            alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
-
-            // 윈도우 객체를 이용해 강제로 로그인 페이지로 보냅니다.
-            window.location.href = '/login';
+            // 이미 로그인 화면이라면 다시 보내지 않습니다 (로그인 실패 시 무한 알림 방지)
+            if (window.location.pathname !== '/login') {
+                alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+                window.location.href = '/login';
+            }
         }
 
-        // 그 외의 에러는 원래대로 컴포넌트의 catch 부분으로 넘깁니다.
+        // 그 외의 에러(403 포함)는 원래대로 컴포넌트의 catch 부분으로 넘깁니다.
         return Promise.reject(error);
     }
 );
+
+/**
+ * 백엔드 GlobalExceptionHandler가 내려주는 { code, message } 중 message를 꺼냅니다.
+ * 형식이 다르거나 네트워크 오류면 fallback을 씁니다.
+ */
+export const errorMessage = (error: unknown, fallback: string): string => {
+    if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.message;
+        if (typeof message === 'string' && message.trim()) return message;
+    }
+    return fallback;
+};
 
 export default api;

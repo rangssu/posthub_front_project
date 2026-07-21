@@ -1,18 +1,18 @@
 // src/pages/SignupPage.tsx
 import { useState, useEffect } from 'react'; // 1. useEffect를 꼭 같이 불러와야 합니다.
 import { useNavigate } from 'react-router-dom';
-import api from '../api/axios';
+import api, { errorMessage } from '../api/axios';
 
 const SignupPage = () => {
     const navigate = useNavigate();
 
     // 2. 여기에 추가하세요! (컴포넌트 시작 부분)
     useEffect(() => {
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-            // 이미 토큰이 있다면 삭제하거나 메인으로 보냅니다.
+        if (localStorage.getItem('accessToken')) {
+            // 가입 화면에서는 기존 로그인 정보를 모두 비웁니다.
             localStorage.removeItem('accessToken');
-            console.log("기존 토큰이 삭제되었습니다.");
+            localStorage.removeItem('userId');
+            localStorage.removeItem('role');
         }
     }, []); // []는 페이지가 처음 열릴 때 딱 한 번만 실행하라는 의미입니다.
 
@@ -71,14 +71,10 @@ const SignupPage = () => {
             alert('회원가입이 완료되었습니다! 로그인해주세요.');
             navigate('/login'); // 가입 성공 시 로그인 화면으로 자동 이동
 
-        } catch (error: any) {
+        } catch (error) {
             console.error(error);
-            // 👇 [추가] 중복 등 에러 메시지 처리
-            if (error.response && error.response.status === 409) {
-                alert('이미 존재하는 아이디 또는 닉네임입니다.');
-            } else {
-                alert('회원가입에 실패했습니다. 입력하신 정보를 확인해주세요.');
-            }
+            // 백엔드가 어떤 항목이 중복인지 알려주므로 그대로 보여줍니다.
+            alert(errorMessage(error, '회원가입에 실패했습니다. 입력하신 정보를 확인해주세요.'));
         }
     };
 

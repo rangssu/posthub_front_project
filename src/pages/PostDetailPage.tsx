@@ -1,7 +1,7 @@
 // src/pages/PostDetailPage.tsx
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../api/axios';
+import api, { errorMessage } from '../api/axios';
 
 // 백엔드의 PostResponse 데이터 구조에 맞춘 타입 정의
 interface PostDetail {
@@ -72,7 +72,7 @@ const PostDetailPage = () => {
             navigate('/boards');
         } catch (error) {
             console.error('게시글 삭제 실패:', error);
-            alert('게시글 삭제에 실패했습니다.');
+            alert(errorMessage(error, '게시글 삭제에 실패했습니다.'));
         }
     };
 
@@ -93,7 +93,7 @@ const PostDetailPage = () => {
             setComments(response.data);
         } catch (error) {
             console.error('댓글 작성 실패:', error);
-            alert('댓글 작성에 실패했습니다. 로그인 상태를 확인하세요.');
+            alert(errorMessage(error, '댓글 작성에 실패했습니다. 로그인 상태를 확인하세요.'));
         }
     };
 
@@ -105,7 +105,7 @@ const PostDetailPage = () => {
             setComments(comments.filter(c => c.commentId !== commentId));
         } catch (error) {
             console.error('댓글 삭제 실패:', error);
-            alert('댓글 삭제에 실패했습니다.');
+            alert(errorMessage(error, '댓글 삭제에 실패했습니다.'));
         }
     };
 
@@ -118,7 +118,7 @@ const PostDetailPage = () => {
             {/* 상단 버튼 영역 */}
             <div className="flex items-center justify-between mb-4">
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={() => navigate("/")}
                     className="text-blue-600 transition-colors hover:text-blue-800 hover:underline"
                 >
                     &larr; 목록으로 돌아가기

@@ -1,7 +1,7 @@
 // src/pages/PostEditPage.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import api from '../api/axios';
+import api, { errorMessage } from '../api/axios';
 
 const PostEditPage = () => {
     // URL에서 수정할 게시글 번호를 가져옵니다.
@@ -56,7 +56,7 @@ const PostEditPage = () => {
             navigate(`/posts/${postId}`); // 수정이 끝나면 다시 상세 페이지로 돌아갑니다.
         } catch (error) {
             console.error('글 수정 에러:', error);
-            alert('글 수정에 실패했습니다.');
+            alert(errorMessage(error, '글 수정에 실패했습니다.'));
         }
     };
 

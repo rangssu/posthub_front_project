@@ -41,6 +41,7 @@ const LoginPage = () => {
             // 성공하면 백엔드가 준 accessToken을 브라우저 금고(localStorage)에 저장
             localStorage.setItem('accessToken', response.data.accessToken);
             localStorage.setItem('userId', response.data.userId);
+            localStorage.setItem('role', response.data.role); // 게시판 관리 버튼 노출 판단용
             alert('로그인 성공!');
 
             // 👇 [수정됨] 로그인 성공 시 대문자가 제거된 /boards 페이지로 이동합니다.

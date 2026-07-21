@@ -1,7 +1,7 @@
 // src/pages/PostWritePage.tsx
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import api from '../api/axios';
+import api, { errorMessage } from '../api/axios';
 
 const PostWritePage = () => {
     // URL에서 어떤 게시판에 글을 쓸지 번호를 가져옵니다. (예: /boards/1/write 이면 boardId는 "1")
@@ -42,7 +42,7 @@ const PostWritePage = () => {
 
         } catch (error) {
             console.error('글 작성 에러:', error);
-            alert('글 작성에 실패했습니다.');
+            alert(errorMessage(error, '글 작성에 실패했습니다.'));
         }
     };
 

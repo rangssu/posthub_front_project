@@ -1,7 +1,7 @@
 // src/pages/BoardPage.tsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api/axios';
+import api, { errorMessage } from '../api/axios';
 
 // 백엔드 BoardResponse 데이터 모양에 완벽하게 맞춘 타입 정의
 interface Board {
@@ -15,7 +15,7 @@ interface Post {
     viewCount: number;
     createdAt: string;
     content: string;
-    userName: string; // 👇 [추가] 백엔드(PostListResponse)에서 보내주는 작성자 닉네임을 받기 위한 속성 추가
+    nickname: string; // 백엔드 PostListResponse의 필드명과 반드시 일치해야 함 (userName 아님)
 }
 
 const BoardPage = () => {
@@ -30,11 +30,14 @@ const BoardPage = () => {
 
     // 1. 로그인 상태 확인 (토큰이 있는지)
     const isLoggedIn = !!localStorage.getItem('accessToken');
+    // 게시판 관리는 관리자만 가능합니다. 백엔드도 ROLE_ADMIN을 요구하므로 UI만 숨기는 게 아닙니다.
+    const isAdmin = localStorage.getItem('role') === 'ADMIN';
 
     // 2. 로그아웃 기능
     const handleLogout = () => {
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('userId'); // 👈 [추가] 남아있던 userId 값도 스토리지에서 완벽하게 삭제합니다!
+        localStorage.removeItem('userId');
+        localStorage.removeItem('role');
         alert('로그아웃 되었습니다.');
         window.location.reload();
     };
@@ -110,7 +113,7 @@ const BoardPage = () => {
             fetchBoards(); // 목록 새로고침
         } catch (error) {
             console.error('게시판 생성 실패', error);
-            alert('게시판 생성에 실패했습니다. (권한 확인 필요)');
+            alert(errorMessage(error, '게시판 생성에 실패했습니다.'));
         }
     };
 
@@ -126,13 +129,13 @@ const BoardPage = () => {
             fetchBoards(); // 목록 새로고침
         } catch (error) {
             console.error('게시판 수정 실패', error);
-            alert('게시판 수정에 실패했습니다.');
+            alert(errorMessage(error, '게시판 수정에 실패했습니다.'));
         }
     };
 
     // [추가] 게시판 삭제 기능
     const handleDeleteBoard = async (boardId: number, boardName: string) => {
-        if (!window.confirm(`'${boardName}' 게시판을 정말 삭제하시겠습니까?\n안에 있는 모든 게시글이 함께 삭제됩니다!`)) return;
+        if (!window.confirm(`'${boardName}' 게시판을 정말 삭제하시겠습니까?\n게시글이 하나라도 남아 있으면 삭제되지 않습니다.`)) return;
 
         try {
             await api.delete(`/boards/${boardId}`);
@@ -141,7 +144,7 @@ const BoardPage = () => {
             fetchBoards(); // 목록 새로고침
         } catch (error) {
             console.error('게시판 삭제 실패', error);
-            alert('게시판 삭제에 실패했습니다.');
+            alert(errorMessage(error, '게시판 삭제에 실패했습니다.'));
         }
     };
 
@@ -182,8 +185,8 @@ const BoardPage = () => {
                             {board.boardName}
                         </span>
 
-                        {/* 로그인 상태 & 현재 선택된 탭에만 수정/삭제 버튼 노출 */}
-                        {isLoggedIn && activeBoardId === board.id && (
+                        {/* 관리자 & 현재 선택된 탭에만 수정/삭제 버튼 노출 */}
+                        {isAdmin && activeBoardId === board.id && (
                             <div className="flex items-center ml-3 space-x-2 border-l border-gray-300 pl-2">
                                 <button
                                     onClick={() => handleUpdateBoard(board.id, board.boardName)}
@@ -204,8 +207,8 @@ const BoardPage = () => {
                     </div>
                 ))}
 
-                {/* 로그인 상태일 때 '+ 새 게시판' 생성 버튼 */}
-                {isLoggedIn && (
+                {/* 관리자일 때만 '+ 새 게시판' 생성 버튼 */}
+                {isAdmin && (
                     <button
                         onClick={handleCreateBoard}
                         className="px-4 py-2 text-sm font-bold text-gray-500 bg-white border border-dashed border-gray-400 rounded-md whitespace-nowrap hover:bg-gray-50 hover:text-gray-800"
@@ -245,9 +248,9 @@ const BoardPage = () => {
                                         {post.title.length > 20 ? post.title.substring(0, 20) + '...' : post.title}
                                     </span>
                                 </td>
-                                {/* 👇 [추가] 작성자 닉네임을 출력하는 셀 추가 */}
+                                {/* 작성자 닉네임 */}
                                 <td className="px-6 py-4 text-center text-gray-500 whitespace-nowrap">
-                                    {post.userName}
+                                    {post.nickname}
                                 </td>
                                 <td className="px-6 py-4 text-center text-gray-500 whitespace-nowrap">
                                     {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
