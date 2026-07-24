@@ -15,8 +15,30 @@ interface Post {
     viewCount: number;
     createdAt: string;
     content: string;
-    nickname: string; // 백엔드 PostListResponse의 필드명과 반드시 일치해야 함 (userName 아님)
+    // 백엔드 PostListResponse의 필드명과 반드시 일치해야 함 (userName 아님).
+    // 탈퇴한 회원의 글은 '탈퇴한 사용자'로 내려온다.
+    nickname: string;
 }
+
+/**
+ * Spring Boot 4의 Page 직렬화 형식.
+ *
+ * Boot 3까지는 totalPages/totalElements가 응답 루트에 있었지만
+ * Boot 4는 page 객체 안으로 들어갔다. 루트에서 읽으면 undefined가 되고,
+ * totalPages > 0 조건이 false가 되면서 페이징 버튼이 통째로 사라진다.
+ */
+interface PageResponse<T> {
+    content: T[];
+    page?: {
+        size: number;
+        number: number;
+        totalElements: number;
+        totalPages: number;
+    };
+}
+
+/** 한 페이지에 보여줄 글 수. 백엔드가 50을 넘는 요청은 잘라내므로 그 안에서 정한다. */
+const PAGE_SIZE = 10;
 
 const BoardPage = () => {
     const navigate = useNavigate();
@@ -81,14 +103,17 @@ const BoardPage = () => {
         if (activeBoardId === null) return;
         const fetchPosts = async () => {
             try {
-                // 👇 [수정됨] URL 파라미터로 현재 페이지 번호를 넘겨줍니다. size는 기본값 10을 사용합니다.
-                const response = await api.get(`/boards/${activeBoardId}/posts?page=${currentPage}&size=10`);
+                // size는 백엔드가 50으로 자르므로 그 아래로 요청합니다.
+                // 정렬은 백엔드가 최신순으로 고정하고 있어 sort는 보내지 않습니다.
+                const response = await api.get<PageResponse<Post>>(
+                    `/boards/${activeBoardId}/posts?page=${currentPage}&size=${PAGE_SIZE}`
+                );
 
                 // [에러 해결] 페이징 처리된 객체({ content: [...] })가 올 경우를 대비해 알맹이만 꺼냅니다.
                 // 배열이 아니면 map 함수에서 에러가 나므로, 반드시 배열 형태만 상태에 저장되도록 처리합니다.
                 if (response.data && response.data.content) {
                     setPosts(response.data.content);
-                    setTotalPages(response.data.totalPages); // 👇 [추가] 전체 페이지 수를 상태에 저장
+                    setTotalPages(response.data.page?.totalPages ?? 0);
                 } else {
                     const postsData = Array.isArray(response.data) ? response.data : [];
                     setPosts(postsData);

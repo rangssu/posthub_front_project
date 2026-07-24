@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { errorMessage } from '../api/axios';
+import { COMMENT_MAX } from '../constants/postLimits';
 
 // 백엔드의 PostResponse 데이터 구조에 맞춘 타입 정의
 interface PostDetail {
@@ -167,10 +168,14 @@ const PostDetailPage = () => {
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         placeholder="댓글을 남겨보세요."
+                        maxLength={COMMENT_MAX}
                         className="w-full p-3 mb-2 text-gray-700 border border-gray-300 rounded resize-none focus:outline-none focus:border-blue-500"
                         rows={3}
                     />
-                    <div className="flex justify-end">
+                    <div className="flex items-center justify-end space-x-3">
+                        <span className="text-xs text-gray-400">
+                            {newComment.length} / {COMMENT_MAX}
+                        </span>
                         <button type="submit" className="px-4 py-2 font-bold text-white bg-blue-600 rounded hover:bg-blue-700">
                             댓글 등록
                         </button>
