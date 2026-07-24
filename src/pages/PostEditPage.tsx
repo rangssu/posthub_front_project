@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import api, { errorMessage } from '../api/axios';
+import { CONTENT_MAX, TITLE_MAX } from '../constants/postLimits';
 
 const PostEditPage = () => {
     // URL에서 수정할 게시글 번호를 가져옵니다.
@@ -71,6 +72,7 @@ const PostEditPage = () => {
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
+                        maxLength={TITLE_MAX}
                         className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow-appearance-none focus:outline-none focus:shadow-outline"
                     />
                 </div>
@@ -80,6 +82,7 @@ const PostEditPage = () => {
                     <textarea
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
+                        maxLength={CONTENT_MAX}
                         rows={10}
                         className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow-appearance-none focus:outline-none focus:shadow-outline resize-none"
                     />

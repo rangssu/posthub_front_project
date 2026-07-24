@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api, { errorMessage } from '../api/axios';
+import { CONTENT_MAX, TITLE_MAX } from '../constants/postLimits';
 
 const PostWritePage = () => {
     // URL에서 어떤 게시판에 글을 쓸지 번호를 가져옵니다. (예: /boards/1/write 이면 boardId는 "1")
@@ -61,6 +62,7 @@ const PostWritePage = () => {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="제목을 입력하세요"
+                        maxLength={TITLE_MAX}
                         className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow-appearance-none focus:outline-none focus:shadow-outline"
                     />
                 </div>
@@ -72,6 +74,7 @@ const PostWritePage = () => {
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         placeholder="내용을 입력하세요"
+                        maxLength={CONTENT_MAX}
                         rows={10} // 높이를 넉넉하게 설정
                         className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow-appearance-none focus:outline-none focus:shadow-outline resize-none"
                     />
