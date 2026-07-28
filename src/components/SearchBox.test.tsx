@@ -61,4 +61,13 @@ describe('SearchBox', () => {
 
         expect(searchInput()).toHaveValue('스프링');
     });
+
+    it('100글자를 넘는 검색어는 이동하지 않고 사유를 보여준다', async () => {
+        renderSearchBox('가'.repeat(101));
+
+        await userEvent.click(screen.getByRole('button', { name: '검색' }));
+
+        expect(screen.getByText('검색어는 100글자 이하여야 합니다.')).toBeInTheDocument();
+        expect(screen.queryByText(/검색 이동/)).not.toBeInTheDocument();
+    });
 });

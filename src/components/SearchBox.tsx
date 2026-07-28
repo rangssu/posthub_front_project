@@ -24,6 +24,11 @@ const SearchBox = ({ initialQuery = '' }: SearchBoxProps) => {
             return;
         }
 
+        if (normalized.length > SEARCH_MAX) {
+            setError(`검색어는 ${SEARCH_MAX}글자 이하여야 합니다.`);
+            return;
+        }
+
         setError('');
         navigate(`/search?q=${encodeURIComponent(normalized)}`);
     };
