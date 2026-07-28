@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api, { errorMessage } from '../api/axios';
 import PostTable from '../components/PostTable';
 import Pagination from '../components/Pagination';
+import SearchBox from '../components/SearchBox';
 import { PAGE_SIZE } from '../constants/pagination';
 import type { PostSummary } from '../types/post';
 import type { PageResponse } from '../types/page';
@@ -161,6 +162,11 @@ const BoardPage = () => {
                         로그인하기
                     </button>
                 )}
+            </div>
+
+            {/* 검색창: 전체 게시판을 대상으로 하므로 게시판 탭 UI와 별개로 둔다 */}
+            <div className="mb-6">
+                <SearchBox />
             </div>
 
             {/* 얇은 테두리와 이름이 명확히 보이는 게시판 탭 영역 */}
