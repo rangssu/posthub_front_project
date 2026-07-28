@@ -70,4 +70,13 @@ describe('SearchBox', () => {
         expect(screen.getByText('검색어는 100글자 이하여야 합니다.')).toBeInTheDocument();
         expect(screen.queryByText(/검색 이동/)).not.toBeInTheDocument();
     });
+
+    it('특수문자가 든 검색어도 온전히 전달한다', async () => {
+        renderSearchBox();
+
+        await userEvent.type(searchInput(), 'a&b');
+        await userEvent.click(screen.getByRole('button', { name: '검색' }));
+
+        expect(await screen.findByText('검색 이동: a&b')).toBeInTheDocument();
+    });
 });

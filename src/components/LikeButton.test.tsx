@@ -78,4 +78,15 @@ describe('LikeButton', () => {
 
         expect(likeButton()).toHaveAttribute('aria-pressed', 'true');
     });
+
+    it('부모가 새 initial을 내려주면 서버 값을 따라간다', () => {
+        const { rerender } = render(
+            <LikeButton target="comments" id={1} initial={{ liked: false, count: 3 }} />,
+            { wrapper: MemoryRouter }
+        );
+
+        rerender(<LikeButton target="comments" id={1} initial={{ liked: true, count: 9 }} />);
+
+        expect(screen.getByText('9')).toBeInTheDocument();
+    });
 });

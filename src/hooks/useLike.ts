@@ -5,6 +5,12 @@ import api, { errorMessage } from '../api/axios';
 /** 좋아요를 누를 대상. 그대로 URL 경로가 된다. */
 export type LikeTarget = 'posts' | 'comments';
 
+/** 백엔드 LikeResponse. 좋아요/취소 응답이 공유한다. */
+interface LikeApiResponse {
+    liked: boolean;
+    likeCount: number;
+}
+
 export interface LikeState {
     liked: boolean;
     count: number;
@@ -45,7 +51,9 @@ export const useLike = (target: LikeTarget, id: number, initial: LikeState) => {
         setPending(true);
         try {
             const url = `/${target}/${id}/likes`;
-            const response = liked ? await api.delete(url) : await api.post(url);
+            const response = liked
+                ? await api.delete<LikeApiResponse>(url)
+                : await api.post<LikeApiResponse>(url);
             setLiked(response.data.liked);
             setCount(response.data.likeCount);
         } catch (error) {

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SearchPage from './SearchPage';
 import { bootPage, makePosts } from '../test/fixtures';
@@ -80,5 +81,33 @@ describe('SearchPage', () => {
         expect(api.get).toHaveBeenCalledWith('/posts/search', {
             params: { q: '스프링', page: 0, size: 10 },
         });
+    });
+
+    it('URL 검색어가 바뀌면 입력창도 따라간다', async () => {
+        // MemoryRouter의 initialEntries는 최초 마운트에만 쓰인다. rerender로
+        // 새 MemoryRouter를 넘기면 트리 전체가 다시 마운트돼 key 없이도
+        // 통과하는 무의미한 테스트가 된다. 그래서 같은 라우터 인스턴스 안에서
+        // useNavigate로 뒤로가기와 동일한 '경로는 그대로, 쿼리만 바뀌는' 상황을
+        // 재현한다.
+        const GoTo = ({ q }: { q: string }) => {
+            const navigate = useNavigate();
+            return <button onClick={() => navigate(`/search?q=${q}`)}>이동:{q}</button>;
+        };
+
+        api.get.mockResolvedValue(bootPage(makePosts(1, 1), 1, 1));
+
+        render(
+            <MemoryRouter initialEntries={['/search?q=스프링']}>
+                <GoTo q="스프링" />
+                <GoTo q="리액트" />
+                <SearchPage />
+            </MemoryRouter>
+        );
+
+        expect(await screen.findByRole('searchbox', { name: '검색어' })).toHaveValue('스프링');
+
+        await userEvent.click(screen.getByText('이동:리액트'));
+
+        expect(await screen.findByRole('searchbox', { name: '검색어' })).toHaveValue('리액트');
     });
 });

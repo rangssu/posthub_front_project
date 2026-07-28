@@ -81,7 +81,8 @@ const SearchPage = () => {
             </div>
 
             <div className="mb-6">
-                <SearchBox initialQuery={query} />
+                {/* key를 URL 검색어로 두어 뒤로가기 시 입력창도 함께 되돌아가게 한다. */}
+                <SearchBox key={query} initialQuery={query} />
             </div>
 
             {!query && <p className="py-10 text-center text-gray-500">검색어를 입력해 주세요.</p>}
