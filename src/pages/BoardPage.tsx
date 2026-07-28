@@ -2,39 +2,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { errorMessage } from '../api/axios';
+import PostTable from '../components/PostTable';
+import type { PostSummary } from '../types/post';
+import type { PageResponse } from '../types/page';
 
 // 백엔드 BoardResponse 데이터 모양에 완벽하게 맞춘 타입 정의
 interface Board {
     id: number;
     boardName: string; // 👇 [수정완료] tabName -> boardName 으로 변경!
-}
-
-interface Post {
-    id: number;
-    title: string;
-    viewCount: number;
-    createdAt: string;
-    content: string;
-    // 백엔드 PostListResponse의 필드명과 반드시 일치해야 함 (userName 아님).
-    // 탈퇴한 회원의 글은 '탈퇴한 사용자'로 내려온다.
-    nickname: string;
-}
-
-/**
- * Spring Boot 4의 Page 직렬화 형식.
- *
- * Boot 3까지는 totalPages/totalElements가 응답 루트에 있었지만
- * Boot 4는 page 객체 안으로 들어갔다. 루트에서 읽으면 undefined가 되고,
- * totalPages > 0 조건이 false가 되면서 페이징 버튼이 통째로 사라진다.
- */
-interface PageResponse<T> {
-    content: T[];
-    page?: {
-        size: number;
-        number: number;
-        totalElements: number;
-        totalPages: number;
-    };
 }
 
 /** 한 페이지에 보여줄 글 수. 백엔드가 50을 넘는 요청은 잘라내므로 그 안에서 정한다. */
@@ -44,7 +19,7 @@ const BoardPage = () => {
     const navigate = useNavigate();
     const [boards, setBoards] = useState<Board[]>([]);
     const [activeBoardId, setActiveBoardId] = useState<number | null>(null);
-    const [posts, setPosts] = useState<Post[]>([]);
+    const [posts, setPosts] = useState<PostSummary[]>([]);
 
     // 👇 [추가] 프론트 페이징 처리를 위한 상태 추가
     const [currentPage, setCurrentPage] = useState<number>(0); // 스프링은 0페이지부터 시작
@@ -105,7 +80,7 @@ const BoardPage = () => {
             try {
                 // size는 백엔드가 50으로 자르므로 그 아래로 요청합니다.
                 // 정렬은 백엔드가 최신순으로 고정하고 있어 sort는 보내지 않습니다.
-                const response = await api.get<PageResponse<Post>>(
+                const response = await api.get<PageResponse<PostSummary>>(
                     `/boards/${activeBoardId}/posts?page=${currentPage}&size=${PAGE_SIZE}`
                 );
 
@@ -244,51 +219,11 @@ const BoardPage = () => {
             </div>
 
             {/* 게시글 목록 테이블 */}
-            <div className="overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                    <tr>
-                        <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">제목</th>
-                        {/* 👇 [추가] 제목과 작성일 사이에 '작성자' 열 추가 */}
-                        <th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">작성자</th>
-                        <th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">작성일</th>
-                        <th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">조회수</th>
-                    </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                    {posts.length === 0 ? (
-                        <tr>
-                            <td colSpan={4} className="px-6 py-10 text-center text-gray-500">작성된 게시글이 없습니다.</td>
-                        </tr>
-                    ) : (
-                        posts.map((post) => (
-                            <tr
-                                key={post.id}
-                                className="cursor-pointer hover:bg-gray-50"
-                                onClick={() => navigate(`/posts/${post.id}`)}
-                            >
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    {/* 👇 [수정됨] 글자 수가 20자가 넘어가면 그 뒤는 자르고 '...'을 붙이도록 삼항 연산자 사용 */}
-                                    <span className="font-medium text-gray-900" title={post.title}>
-                                        {post.title.length > 20 ? post.title.substring(0, 20) + '...' : post.title}
-                                    </span>
-                                </td>
-                                {/* 작성자 닉네임 */}
-                                <td className="px-6 py-4 text-center text-gray-500 whitespace-nowrap">
-                                    {post.nickname}
-                                </td>
-                                <td className="px-6 py-4 text-center text-gray-500 whitespace-nowrap">
-                                    {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '-'}
-                                </td>
-                                <td className="px-6 py-4 text-center text-gray-500 whitespace-nowrap">
-                                    {post.viewCount}
-                                </td>
-                            </tr>
-                        ))
-                    )}
-                    </tbody>
-                </table>
-            </div>
+            <PostTable
+                posts={posts}
+                emptyMessage="작성된 게시글이 없습니다."
+                onRowClick={(postId) => navigate(`/posts/${postId}`)}
+            />
 
             {/* 👇 [추가] 페이징 버튼 영역 (데이터가 있을 때만 렌더링) */}
             {totalPages > 0 && (

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BoardPage from './BoardPage';
+import { bootPage, makePosts } from '../test/fixtures';
 
 /**
  * 백엔드 응답 형식과 화면의 계약을 검증한다.
@@ -24,24 +25,6 @@ const api = (await import('../api/axios')).default as unknown as {
 };
 
 const board = { id: 1, boardName: '자유게시판' };
-
-const makePosts = (count: number, startId: number) =>
-    Array.from({ length: count }, (_, i) => ({
-        id: startId + i,
-        title: `게시글 ${startId + i}`,
-        viewCount: 0,
-        createdAt: '2026-07-24T10:00:00',
-        content: '본문',
-        nickname: '작성자',
-    }));
-
-/** 실제 백엔드(Spring Boot 4)가 내려주는 목록 응답 형식 */
-const bootPage = (posts: ReturnType<typeof makePosts>, totalElements: number, totalPages: number) => ({
-    data: {
-        content: posts,
-        page: { size: 10, number: 0, totalElements, totalPages },
-    },
-});
 
 const renderBoardPage = () => render(<BoardPage />, { wrapper: MemoryRouter });
 
