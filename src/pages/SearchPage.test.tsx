@@ -70,4 +70,15 @@ describe('SearchPage', () => {
             params: { q: '스프링', page: 1, size: 10 },
         });
     });
+
+    it('page 파라미터가 숫자가 아니면 첫 페이지로 요청한다', async () => {
+        api.get.mockResolvedValue(bootPage(makePosts(1, 1), 1, 1));
+
+        renderSearchPage('?q=스프링&page=abc');
+
+        expect(await screen.findByText('게시글 1')).toBeInTheDocument();
+        expect(api.get).toHaveBeenCalledWith('/posts/search', {
+            params: { q: '스프링', page: 0, size: 10 },
+        });
+    });
 });

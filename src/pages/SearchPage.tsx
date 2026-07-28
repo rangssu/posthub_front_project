@@ -19,7 +19,9 @@ const SearchPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
 
     const query = searchParams.get('q') ?? '';
-    const currentPage = Number(searchParams.get('page') ?? '0');
+    const pageParam = Number(searchParams.get('page') ?? '0');
+    // 잘못된 URL(?page=abc)의 NaN이 요청과 페이지 버튼까지 흘러가지 않게 막는다.
+    const currentPage = Number.isInteger(pageParam) && pageParam >= 0 ? pageParam : 0;
 
     const [posts, setPosts] = useState<PostSummary[]>([]);
     const [totalPages, setTotalPages] = useState(0);
@@ -35,16 +37,21 @@ const SearchPage = () => {
             return;
         }
 
+        // 페이지를 빠르게 넘기면 늦게 도착한 이전 응답이 새 결과를 덮을 수 있다.
+        let ignore = false;
+
         const search = async () => {
             setError('');
             try {
                 const response = await api.get<PageResponse<PostSummary>>('/posts/search', {
                     params: { q: query, page: currentPage, size: PAGE_SIZE },
                 });
+                if (ignore) return;
                 setPosts(response.data.content ?? []);
                 setTotalPages(response.data.page?.totalPages ?? 0);
                 setTotalElements(response.data.page?.totalElements ?? 0);
             } catch (e) {
+                if (ignore) return;
                 // 검색은 실패가 잦은 동작이라 alert 대신 화면에 남긴다.
                 setPosts([]);
                 setTotalPages(0);
@@ -54,6 +61,10 @@ const SearchPage = () => {
         };
 
         search();
+
+        return () => {
+            ignore = true;
+        };
     }, [query, currentPage]);
 
     const goToPage = (page: number) => setSearchParams({ q: query, page: String(page) });
