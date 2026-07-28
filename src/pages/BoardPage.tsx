@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { errorMessage } from '../api/axios';
 import PostTable from '../components/PostTable';
+import Pagination from '../components/Pagination';
+import { PAGE_SIZE } from '../constants/pagination';
 import type { PostSummary } from '../types/post';
 import type { PageResponse } from '../types/page';
 
@@ -11,9 +13,6 @@ interface Board {
     id: number;
     boardName: string; // 👇 [수정완료] tabName -> boardName 으로 변경!
 }
-
-/** 한 페이지에 보여줄 글 수. 백엔드가 50을 넘는 요청은 잘라내므로 그 안에서 정한다. */
-const PAGE_SIZE = 10;
 
 const BoardPage = () => {
     const navigate = useNavigate();
@@ -226,40 +225,7 @@ const BoardPage = () => {
             />
 
             {/* 👇 [추가] 페이징 버튼 영역 (데이터가 있을 때만 렌더링) */}
-            {totalPages > 0 && (
-                <div className="flex items-center justify-center p-4 bg-white border-t border-gray-200 space-x-2">
-                    <button
-                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
-                        disabled={currentPage === 0}
-                        className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        이전
-                    </button>
-
-                    {/* Array.from을 이용해 totalPages 숫자만큼 버튼을 생성합니다. */}
-                    {Array.from({ length: totalPages }, (_, i) => (
-                        <button
-                            key={i}
-                            onClick={() => setCurrentPage(i)}
-                            className={`px-3 py-1 text-sm font-medium border rounded-md ${
-                                currentPage === i
-                                    ? 'bg-blue-50 text-blue-600 border-blue-500' // 현재 선택된 페이지
-                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' // 선택되지 않은 페이지
-                            }`}
-                        >
-                            {i + 1}
-                        </button>
-                    ))}
-
-                    <button
-                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))}
-                        disabled={currentPage === totalPages - 1}
-                        className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        다음
-                    </button>
-                </div>
-            )}
+            <Pagination currentPage={currentPage} totalPages={totalPages} onChange={setCurrentPage} />
 
             {/* 글쓰기 버튼 */}
             {isLoggedIn && activeBoardId && (
