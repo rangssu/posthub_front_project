@@ -6,6 +6,7 @@ import BoardPage from './pages/BoardPage'; // 👈 새로 만든 페이지 불�
 import PostDetailPage from './pages/PostDetailPage'; // 👈 [추가] 상세 페이지 컴포넌트 불러오기
 import PostWritePage from './pages/PostWritePage'; // 👈 [추가] 글쓰기 페이지 불러오기
 import PostEditPage from './pages/PostEditPage'; // 👈 [추가] 수정 페이지 컴포넌트 불러오기
+import SearchPage from './pages/SearchPage';
 
 
 function App() {
@@ -21,6 +22,9 @@ function App() {
 
                 {/* 👇 [수정됨] URL에서 대문자를 지우고 /boards 로 맞췄습니다. */}
                 <Route path="/boards" element={<BoardPage />} />
+
+                {/* 검색 결과. 검색어와 페이지는 쿼리스트링(?q=&page=)으로 받는다. */}
+                <Route path="/search" element={<SearchPage />} />
 
                 {/* 👇 [추가] 게시글 상세 페이지 경로 추가 :postId는 URL에서 동적으로 변하는 파라미터(게시글 번호)를 의미합니다.*/}
                 <Route path="/posts/:postId" element={<PostDetailPage />} />
