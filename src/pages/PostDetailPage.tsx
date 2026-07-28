@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { errorMessage } from '../api/axios';
 import { COMMENT_MAX } from '../constants/postLimits';
+import LikeButton from '../components/LikeButton';
 
 // 백엔드의 PostResponse 데이터 구조에 맞춘 타입 정의
 interface PostDetail {
@@ -13,6 +14,10 @@ interface PostDetail {
     createdAt: string;
     boardId: number;
     userId: number; // 👇 [추가] 글 작성자 ID
+    /** 좋아요 수. 백엔드 PostResponse가 함께 내려준다. */
+    likeCount: number;
+    /** 내가 눌렀는지. 비로그인이면 항상 false로 내려온다. */
+    likedByMe: boolean;
 }
 
 // 백엔드의 CommentResponse 데이터 구조에 맞춘 타입 정의
@@ -22,6 +27,10 @@ interface CommentData {
     content: string;
     createAt: string;
     nickname: string; // 👇 [추가] 댓글 작성자 닉네임
+    /** 좋아요 수. 백엔드 CommentResponse가 함께 내려준다. */
+    likeCount: number;
+    /** 내가 눌렀는지. 비로그인이면 항상 false로 내려온다. */
+    likedByMe: boolean;
 }
 
 const PostDetailPage = () => {
@@ -156,6 +165,13 @@ const PostDetailPage = () => {
                 <div className="leading-relaxed text-gray-800 whitespace-pre-wrap">
                     {post.content}
                 </div>
+                <div className="pt-6 mt-6 border-t border-gray-200">
+                    <LikeButton
+                        target="posts"
+                        id={post.id}
+                        initial={{ liked: post.likedByMe, count: post.likeCount }}
+                    />
+                </div>
             </div>
 
             {/* 댓글 UI 영역 시작 */}
@@ -198,6 +214,14 @@ const PostDetailPage = () => {
                                     <span className="mt-2 text-xs text-gray-400">
                                         {comment.createAt ? new Date(comment.createAt).toLocaleString() : ''}
                                     </span>
+                                    <div className="mt-2">
+                                        <LikeButton
+                                            target="comments"
+                                            id={comment.commentId}
+                                            initial={{ liked: comment.likedByMe, count: comment.likeCount }}
+                                            size="sm"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* 👇 [핵심 변경점] 내 ID(myUserId)와 댓글 작성자 ID(comment.userId)가 같을 때만 삭제 버튼을 보여줍니다! */}
