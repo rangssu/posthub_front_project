@@ -4,6 +4,14 @@ import axios from 'axios';
 // 1. 기본 설정: 스프링부트 주소를 미리 적어둡니다.
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL, // 변경된 부분!
+
+    /*
+     * 리프레시 토큰은 httpOnly 쿠키로만 오갑니다(JS로는 읽을 수 없습니다).
+     * 이게 없으면 브라우저가 크로스 오리진 요청에 쿠키를 싣지도, 받은 쿠키를
+     * 저장하지도 않아 토큰 갱신이 아예 불가능합니다.
+     * 백엔드는 SecurityConfig에서 allowCredentials(true)로 이미 받아줍니다.
+     */
+    withCredentials: true,
 });
 
 // 2. 요청(Request) 인터셉터: 백엔드로 요청을 보내기 직전에 가로채서 토큰을 몰래(?) 넣어줍니다.
