@@ -58,7 +58,7 @@
 
 **Interfaces:**
 - Consumes: 없음 (첫 태스크)
-- Produces: Tailwind 색 유틸리티 `bg-bg` `bg-surface` `border-border` `border-subtle` `text-fg` `text-fg-muted` `text-fg-subtle` `bg-accent` `text-accent` `text-accent-fg` `bg-accent-subtle` `bg-danger` `text-danger` `text-danger-fg` `bg-danger-subtle`. `useTheme(): { theme: 'light' | 'dark'; toggle: () => void }`
+- Produces: Tailwind 색 유틸리티 `bg-bg` `bg-surface` `border-border` `border-divider` `text-fg` `text-fg-muted` `text-fg-subtle` `bg-accent` `text-accent` `text-accent-fg` `bg-accent-subtle` `bg-danger` `text-danger` `text-danger-fg` `bg-danger-subtle`. `useTheme(): { theme: 'light' | 'dark'; toggle: () => void }`
 
 **주의:** jsdom에는 `window.matchMedia`가 없다. Step 1에서 스텁을 넣지 않으면 `useTheme`을 쓰는 모든 테스트가 `TypeError`로 터진다.
 
@@ -107,7 +107,7 @@ afterEach(() => {
     --color-bg: 255 255 255;
     --color-surface: 250 250 249;
     --color-border: 231 229 228;
-    --color-border-subtle: 245 245 244;
+    --color-divider: 245 245 244;
     --color-fg: 28 25 23;
     --color-fg-muted: 120 113 108;
     --color-fg-subtle: 168 162 158;
@@ -123,7 +123,7 @@ afterEach(() => {
     --color-bg: 12 10 9;
     --color-surface: 28 25 23;
     --color-border: 41 37 36;
-    --color-border-subtle: 28 25 23;
+    --color-divider: 28 25 23;
     --color-fg: 250 250 249;
     --color-fg-muted: 168 162 158;
     --color-fg-subtle: 120 113 108;
@@ -154,7 +154,7 @@ export default {
         bg: 'rgb(var(--color-bg) / <alpha-value>)',
         surface: 'rgb(var(--color-surface) / <alpha-value>)',
         border: 'rgb(var(--color-border) / <alpha-value>)',
-        'border-subtle': 'rgb(var(--color-border-subtle) / <alpha-value>)',
+        divider: 'rgb(var(--color-divider) / <alpha-value>)',
         fg: 'rgb(var(--color-fg) / <alpha-value>)',
         'fg-muted': 'rgb(var(--color-fg-muted) / <alpha-value>)',
         'fg-subtle': 'rgb(var(--color-fg-subtle) / <alpha-value>)',
@@ -1575,7 +1575,7 @@ const PostTable = ({ posts, emptyMessage, onRowClick }: PostTableProps) => {
                     <tr
                         key={post.id}
                         onClick={() => onRowClick(post.id)}
-                        className="cursor-pointer border-b border-border-subtle hover:bg-surface max-sm:block max-sm:py-3"
+                        className="cursor-pointer border-b border-divider hover:bg-surface max-sm:block max-sm:py-3"
                     >
                         <td className="max-w-0 py-3 pr-4 max-sm:block max-sm:max-w-none max-sm:p-0 max-sm:pb-1">
                             <span

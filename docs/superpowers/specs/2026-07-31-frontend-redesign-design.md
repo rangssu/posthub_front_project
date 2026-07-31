@@ -48,7 +48,7 @@ PostHub 프론트는 기능이 모두 붙어 있지만 디자인 레이어가 �
 | `bg` | `#ffffff` | `#0c0a09` | 페이지 배경 |
 | `surface` | `#fafaf9` | `#1c1917` | 입력창·모달 배경 |
 | `border` | `#e7e5e4` | `#292524` | 헤더 밑줄, 테이블 헤더 구분선 |
-| `border-subtle` | `#f5f5f4` | `#1c1917` | 테이블 행 구분선 |
+| `divider` | `#f5f5f4` | `#1c1917` | 테이블 행 구분선 (`border-divider`) |
 | `fg` | `#1c1917` | `#fafaf9` | 본문·제목 |
 | `fg-muted` | `#78716c` | `#a8a29e` | 작성자·날짜 |
 | `fg-subtle` | `#a8a29e` | `#78716c` | 열 헤더, 플레이스홀더 |
@@ -193,7 +193,7 @@ src/hooks/useTheme.ts
 `<table>` 유지. 그림자·라운드·회색 헤더 배경을 제거하고 선으로만 구분한다.
 
 - 열 헤더: 소문자 대비 작은 크기, `fg-subtle`, 아래 `border` 한 줄
-- 행 구분: `border-subtle`
+- 행 구분: `border-divider`
 - 제목은 왼쪽 정렬, 조회수·댓글은 **오른쪽 정렬**(숫자열을 눈으로 훑기 위해)
 - 행 hover 시 `surface` 배경
 
