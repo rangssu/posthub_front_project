@@ -1,0 +1,37 @@
+/*
+ * 색의 유일한 출처. 컴포넌트는 의미 이름(bg-surface, text-fg)만 쓰고
+ * 팔레트 이름(stone-800)은 쓰지 않는다. 색을 바꿀 일이 생기면 이 파일만 고친다.
+ *
+ * Tailwind가 rgb(var(--color-x) / <alpha-value>)로 참조하므로 채널값으로 적는다.
+ */
+:root {
+    --color-bg: 255 255 255;
+    --color-surface: 250 250 249;
+    --color-border: 231 229 228;
+    --color-border-subtle: 245 245 244;
+    --color-fg: 28 25 23;
+    --color-fg-muted: 120 113 108;
+    --color-fg-subtle: 168 162 158;
+    --color-accent: 4 120 87;
+    --color-accent-fg: 255 255 255;
+    --color-accent-subtle: 236 253 245;
+    --color-danger: 185 28 28;
+    --color-danger-fg: 255 255 255;
+    --color-danger-subtle: 254 242 242;
+}
+
+.dark {
+    --color-bg: 12 10 9;
+    --color-surface: 28 25 23;
+    --color-border: 41 37 36;
+    --color-border-subtle: 28 25 23;
+    --color-fg: 250 250 249;
+    --color-fg-muted: 168 162 158;
+    --color-fg-subtle: 120 113 108;
+    --color-accent: 52 211 153;
+    --color-accent-fg: 5 46 33;
+    --color-accent-subtle: 2 44 34;
+    --color-danger: 248 113 113;
+    --color-danger-fg: 69 10 10;
+    --color-danger-subtle: 69 10 10;
+}
