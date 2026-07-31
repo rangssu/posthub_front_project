@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BoardPage from './BoardPage';
@@ -22,6 +23,7 @@ vi.mock('../api/axios', () => ({
 
 const api = (await import('../api/axios')).default as unknown as {
     get: ReturnType<typeof vi.fn>;
+    post: ReturnType<typeof vi.fn>;
 };
 
 const board = { id: 1, boardName: '자유게시판' };
@@ -85,5 +87,50 @@ describe('BoardPage 페이징', () => {
         renderBoardPage();
 
         expect(await screen.findByText('탈퇴한 사용자')).toBeInTheDocument();
+    });
+});
+
+/**
+ * 리프레시 토큰은 httpOnly 쿠키라 프론트가 지울 수 없다.
+ * 서버에 알리지 않으면 로그아웃한 뒤에도 그 쿠키로 새 액세스 토큰을 받아갈 수 있다.
+ */
+describe('BoardPage 로그아웃', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.clear();
+        vi.stubGlobal('alert', vi.fn());
+        // jsdom에서는 location.reload가 구현돼 있지 않아 호출하면 에러가 난다.
+        vi.stubGlobal('location', { ...window.location, reload: vi.fn() });
+
+        api.get.mockImplementation((url: string) => {
+            if (url === '/boards') return Promise.resolve({ data: [board] });
+            return Promise.resolve(bootPage(makePosts(1, 1), 1, 1));
+        });
+        localStorage.setItem('accessToken', 'token');
+        localStorage.setItem('userId', '1');
+        localStorage.setItem('role', 'USER');
+    });
+
+    const clickLogout = async () => {
+        renderBoardPage();
+        await userEvent.click(await screen.findByRole('button', { name: '로그아웃' }));
+    };
+
+    it('서버에 로그아웃을 알리고 인증 정보를 지운다', async () => {
+        api.post.mockResolvedValue({ status: 204 });
+
+        await clickLogout();
+
+        await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/logout'));
+        expect(localStorage.getItem('accessToken')).toBeNull();
+    });
+
+    it('서버 로그아웃이 실패해도 인증 정보는 지운다', async () => {
+        // 서버가 죽었다고 로그아웃이 막히면 안 된다.
+        api.post.mockRejectedValue(new Error('network'));
+
+        await clickLogout();
+
+        await waitFor(() => expect(localStorage.getItem('accessToken')).toBeNull());
     });
 });
