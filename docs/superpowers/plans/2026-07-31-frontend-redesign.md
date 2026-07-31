@@ -15,7 +15,11 @@
 - **초록은 브랜드 포인트 전용이다.** 성공 신호로 쓰지 않는다. 성공 토스트는 무채색(`surface`), 오류만 `danger`.
 - **한글 주석과 커밋 메시지**를 쓴다. 기존 코드 관례를 따른다. 커밋 메시지는 `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`로 끝낸다.
 - **`refreshClient.test.ts`의 경합 테스트를 건드리지 않는다.** 리프레시가 단일 비행이 아니면 토큰 계열 전체가 폐기돼 로그인 세션이 통째로 날아간다.
-- **각 태스크 커밋 전** `npm run test`, `npm run build`, `npm run lint`가 모두 통과해야 한다.
+- **각 태스크 커밋 전** `npm run test`와 `npm run build`가 통과해야 한다.
+- **`npm run lint`는 새 오류를 추가하지 않으면 된다.** 이 브랜치의 출발점에 이미 오류 6개가 있다 —
+  `BoardPage` `LoginPage` `PostDetailPage` `PostEditPage` `SearchPage`의 `no-unused-vars`와
+  `react-hooks/set-state-in-effect`다. 전부 T8~T11에서 다시 쓰는 파일이므로, **그 태스크들은
+  자기가 손대는 파일의 기존 lint 오류까지 정리한다.** T12 종료 시점에 lint가 깨끗해야 한다.
 - 브랜치: `feat/redesign`. 설계 문서: `docs/superpowers/specs/2026-07-31-frontend-redesign-design.md`.
 
 ---
