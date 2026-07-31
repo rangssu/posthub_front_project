@@ -11,7 +11,7 @@ export default {
         bg: 'rgb(var(--color-bg) / <alpha-value>)',
         surface: 'rgb(var(--color-surface) / <alpha-value>)',
         border: 'rgb(var(--color-border) / <alpha-value>)',
-        'border-subtle': 'rgb(var(--color-border-subtle) / <alpha-value>)',
+        divider: 'rgb(var(--color-divider) / <alpha-value>)',
         fg: 'rgb(var(--color-fg) / <alpha-value>)',
         'fg-muted': 'rgb(var(--color-fg-muted) / <alpha-value>)',
         'fg-subtle': 'rgb(var(--color-fg-subtle) / <alpha-value>)',
