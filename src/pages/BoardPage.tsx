@@ -31,7 +31,21 @@ const BoardPage = () => {
     const isAdmin = localStorage.getItem('role') === 'ADMIN';
 
     // 2. 로그아웃 기능
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        /*
+         * 서버에도 알려야 로그아웃이 실제로 끝납니다. 리프레시 토큰은 httpOnly 쿠키라
+         * 프론트가 지울 수 없고, 서버가 계열을 폐기하지 않으면 그 쿠키로 계속
+         * 새 액세스 토큰을 받아갈 수 있습니다.
+         *
+         * 실패해도 로컬 정리는 그대로 진행합니다. 서버가 죽었다고 로그아웃이 막히면
+         * 안 됩니다. 백엔드는 쿠키가 없어도 204를 주는 멱등 설계라 재시도에 안전합니다.
+         */
+        try {
+            await api.post('/auth/logout');
+        } catch {
+            console.warn('서버 로그아웃에 실패했습니다. 로컬 인증 정보만 정리합니다.');
+        }
+
         localStorage.removeItem('accessToken');
         localStorage.removeItem('userId');
         localStorage.removeItem('role');

@@ -1,9 +1,19 @@
 // src/api/axios.ts
 import axios from 'axios';
+import type { InternalAxiosRequestConfig } from 'axios';
+import { refreshAccessToken } from './refreshClient';
 
 // 1. 기본 설정: 스프링부트 주소를 미리 적어둡니다.
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL, // 변경된 부분!
+
+    /*
+     * 리프레시 토큰은 httpOnly 쿠키로만 오갑니다(JS로는 읽을 수 없습니다).
+     * 이게 없으면 브라우저가 크로스 오리진 요청에 쿠키를 싣지도, 받은 쿠키를
+     * 저장하지도 않아 토큰 갱신이 아예 불가능합니다.
+     * 백엔드는 SecurityConfig에서 allowCredentials(true)로 이미 받아줍니다.
+     */
+    withCredentials: true,
 });
 
 // 2. 요청(Request) 인터셉터: 백엔드로 요청을 보내기 직전에 가로채서 토큰을 몰래(?) 넣어줍니다.
@@ -26,25 +36,30 @@ api.interceptors.response.use(
         // 정상적인 응답은 그대로 화면(컴포넌트)으로 보냅니다.
         return response;
     },
-    (error) => {
+    async (error) => {
         /*
          * 401(미인증)과 403(권한 부족)은 반드시 구분해야 합니다.
          * 둘 다 로그아웃 처리하면 "남의 글을 수정하려 했다" 같은 정상적인 거부에서도
          * 멀쩡히 로그인된 사용자가 강제로 튕겨나갑니다.
          */
         const status = error.response?.status;
+        const request = error.config as RetriableRequest | undefined;
 
-        if (status === 401) {
-            console.warn('인증이 만료되었습니다. 로그아웃 처리합니다.');
-
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('userId');
-            localStorage.removeItem('role');
-
-            // 이미 로그인 화면이라면 다시 보내지 않습니다 (로그인 실패 시 무한 알림 방지)
-            if (window.location.pathname !== '/login') {
-                alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
-                window.location.href = '/login';
+        if (status === 401 && request && canRetry(request)) {
+            /*
+             * 액세스 토큰은 15분짜리라 만료가 일상입니다. 바로 로그아웃시키면
+             * 15분마다 튕겨나가므로, 먼저 재발급을 시도하고 원래 요청을 이어붙입니다.
+             * 재발급이 겹치지 않게 막는 일은 refreshAccessToken이 합니다.
+             */
+            request.__retried = true;
+            try {
+                const accessToken = await refreshAccessToken();
+                // headers는 AxiosHeaders 인스턴스입니다. 통째로 갈아끼우면 메서드가 사라집니다.
+                request.headers.set('Authorization', `Bearer ${accessToken}`);
+                return api(request);
+            } catch {
+                // 재발급까지 실패했으면 진짜로 세션이 끝난 것입니다.
+                logoutLocally();
             }
         }
 
@@ -52,6 +67,36 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+/** 재시도 여부를 표시해 둔 요청 설정. 같은 요청을 두 번 재시도하면 무한 루프가 됩니다. */
+type RetriableRequest = InternalAxiosRequestConfig & { __retried?: boolean };
+
+/**
+ * 이 401을 토큰 재발급으로 되살릴 수 있는지 판단합니다.
+ *
+ * 인증 엔드포인트를 제외하는 것이 핵심입니다. 재발급 요청 자체가 401을 받았을 때
+ * 다시 재발급을 시도하면 자기 자신을 무한히 부릅니다. 로그인 실패의 401도
+ * 정상적인 응답이지 만료가 아닙니다.
+ */
+const canRetry = (request: RetriableRequest): boolean => {
+    if (request.__retried) return false;
+    return !(request.url ?? '').startsWith('/auth/');
+};
+
+/** 저장된 인증 정보를 버리고 로그인 화면으로 보냅니다. */
+const logoutLocally = () => {
+    console.warn('인증이 만료되었습니다. 로그아웃 처리합니다.');
+
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('role');
+
+    // 이미 로그인 화면이라면 다시 보내지 않습니다 (로그인 실패 시 무한 알림 방지)
+    if (window.location.pathname !== '/login') {
+        alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+        window.location.href = '/login';
+    }
+};
 
 /**
  * 백엔드 GlobalExceptionHandler가 내려주는 { code, message } 중 message를 꺼냅니다.
