@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api, { errorMessage } from '../api/axios';
+import Layout from '../components/Layout';
 import PostTable from '../components/PostTable';
 import Pagination from '../components/Pagination';
-import SearchBox from '../components/SearchBox';
+import { Button } from '../components/ui/Button';
 import { PAGE_SIZE } from '../constants/pagination';
 import type { PageResponse } from '../types/page';
 import type { PostSummary } from '../types/post';
@@ -29,13 +30,13 @@ const SearchPage = () => {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (!query) {
-            setPosts([]);
-            setTotalPages(0);
-            setTotalElements(0);
-            setError('');
-            return;
-        }
+        /*
+         * 검색어가 없으면 아무것도 하지 않는다. 예전에는 여기서 결과 상태를 전부
+         * 0으로 되돌렸는데, effect 안에서 setState를 동기 호출하는 꼴이라
+         * react-hooks/set-state-in-effect에 걸렸다. 아래 렌더가 query가 있을 때만
+         * 결과를 그리므로 되돌릴 필요도 없었다.
+         */
+        if (!query) return;
 
         // 페이지를 빠르게 넘기면 늦게 도착한 이전 응답이 새 결과를 덮을 수 있다.
         let ignore = false;
@@ -70,28 +71,28 @@ const SearchPage = () => {
     const goToPage = (page: number) => setSearchParams({ q: query, page: String(page) });
 
     return (
-        <div className="max-w-4xl px-4 py-8 mx-auto">
+        <Layout>
             <div className="flex items-center justify-between mb-6">
-                <button
-                    onClick={() => navigate('/boards')}
-                    className="text-blue-600 transition-colors hover:text-blue-800 hover:underline"
-                >
+                {/* 제목이 아예 없어 무슨 화면인지 알 수 없었다. */}
+                <h1 className="text-xl font-semibold text-fg">검색 결과</h1>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/boards')}>
                     &larr; 목록으로 돌아가기
-                </button>
+                </Button>
             </div>
 
-            <div className="mb-6">
-                {/* key를 URL 검색어로 두어 뒤로가기 시 입력창도 함께 되돌아가게 한다. */}
-                <SearchBox key={query} initialQuery={query} />
-            </div>
+            {/*
+             * 검색창은 헤더에 있다. 여기 하나를 더 두면 한 화면에 검색창이 둘이 된다.
+             * 헤더가 URL의 q를 읽어 현재 검색어를 채운다.
+             */}
+            {!query && <p className="py-10 text-center text-fg-muted">검색어를 입력해 주세요.</p>}
 
-            {!query && <p className="py-10 text-center text-gray-500">검색어를 입력해 주세요.</p>}
-
-            {query && error && <p className="py-10 text-center text-red-500">{error}</p>}
+            {query && error && (
+                <p role="alert" className="py-10 text-center text-danger">{error}</p>
+            )}
 
             {query && !error && (
                 <>
-                    <p className="mb-4 text-sm text-gray-600">
+                    <p className="mb-4 text-sm text-fg-muted">
                         '{query}' 검색 결과 {totalElements}건
                     </p>
 
@@ -104,7 +105,7 @@ const SearchPage = () => {
                     <Pagination currentPage={currentPage} totalPages={totalPages} onChange={goToPage} />
                 </>
             )}
-        </div>
+        </Layout>
     );
 };
 

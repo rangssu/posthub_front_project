@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import SearchBox from './SearchBox';
 import { Button } from './ui/Button';
@@ -13,7 +13,15 @@ import { toast } from './ui/toastStore';
  */
 const Header = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const isLoggedIn = Boolean(localStorage.getItem('accessToken'));
+
+    /*
+     * 검색 결과 화면에서 검색창을 현재 검색어로 채운다. 전에는 SearchPage가 자기
+     * 검색창을 따로 들고 있었는데, 헤더에도 하나 생기면서 한 화면에 둘이 됐다.
+     * key를 검색어로 두면 뒤로가기로 URL이 되돌아갈 때 입력창도 함께 되돌아간다.
+     */
+    const query = searchParams.get('q') ?? '';
 
     const handleLogout = async () => {
         /*
@@ -53,7 +61,7 @@ const Header = () => {
                  * SearchBox를 두 번 마운트하면 입력 상태가 갈리므로 여기 한 곳에만 둔다.
                  */}
                 <div className="order-last basis-full sm:order-none sm:ml-auto sm:basis-auto">
-                    <SearchBox />
+                    <SearchBox key={query} initialQuery={query} />
                 </div>
 
                 <div className="ml-auto flex items-center gap-2 sm:ml-0">
