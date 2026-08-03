@@ -49,7 +49,9 @@
 
 **삭제**: `src/App.css`
 
-**수정**: `index.html`, `tailwind.config.js`, `src/index.css`, `src/App.tsx`, `src/test/setup.ts`, `src/components/PostTable.tsx`, 7개 페이지, `src/hooks/useLike.ts`, `src/api/axios.ts`
+**수정**: `index.html`, `tailwind.config.js`, `src/index.css`, `src/App.tsx`, `src/test/setup.ts`,
+`src/components/PostTable.tsx`, `src/components/SearchBox.tsx`, `src/components/Pagination.tsx`,
+`src/components/LikeButton.tsx`, 7개 페이지, `src/hooks/useLike.ts`, `src/api/axios.ts`
 
 ---
 
@@ -1476,10 +1478,11 @@ EOF
 
 ---
 
-### Task 7: PostTable 재작성
+### Task 7: 공통 컴포넌트 4종 리디자인
 
 **Files:**
 - Modify: `src/components/PostTable.tsx`, `src/components/PostTable.test.tsx`
+- Modify: `src/components/SearchBox.tsx`, `src/components/Pagination.tsx`, `src/components/LikeButton.tsx`
 
 **Interfaces:**
 - Consumes: Task 1의 색 유틸리티
@@ -1630,7 +1633,37 @@ export default PostTable;
 Run: `npm run test -- PostTable`
 Expected: PASS. 빈 목록 단언이 `<td colSpan>`을 기대하고 있었다면 `<p>`로 바뀌었으므로 테스트를 함께 고친다 — 문구 기반 단언(`screen.getByText('작성된 게시글이 없습니다.')`)으로 바꾸면 마크업에 덜 민감해진다.
 
-- [ ] **Step 6: 전체 검증 후 커밋**
+- [ ] **Step 6: 나머지 공통 컴포넌트 3종을 토큰으로 옮기기**
+
+`SearchBox`·`Pagination`·`LikeButton`이 아직 팔레트 색을 직접 쓰고 있다
+(`bg-blue-600`, `text-gray-700`, `border-gray-300`, `text-red-500` 등).
+`SearchBox`는 이제 헤더에 실려 **모든 페이지에 뜨므로** 이걸 남겨두면
+전면 리디자인이 절반만 된 상태가 된다.
+
+세 파일의 색·테두리·포커스 링 클래스를 13종 토큰으로 바꾼다. 대응은 이렇게 잡는다:
+
+| 기존 | 바꿀 토큰 |
+|---|---|
+| `text-gray-900`, `text-gray-800` | `text-fg` |
+| `text-gray-700`, `text-gray-500` | `text-fg-muted` |
+| `text-gray-400`, `placeholder` 계열 | `text-fg-subtle` |
+| `border-gray-300`, `border-gray-200` | `border-border` |
+| `bg-white` | `bg-bg` (입력·카드 배경은 `bg-surface`) |
+| `bg-gray-50`, `bg-gray-100` (hover) | `bg-surface` |
+| `bg-blue-600`, `bg-blue-500`, `text-blue-*` | `bg-accent` / `text-accent` (+ 글자는 `text-accent-fg`) |
+| `text-red-*`, `bg-red-*` | `danger` 계열 |
+
+**버튼은 가능하면 `Button` 프리미티브로 교체한다.** `Pagination`의 페이지 버튼과
+`SearchBox`의 검색 버튼이 해당한다. 활성 페이지는 `bg-accent text-accent-fg`,
+비활성은 `variant="secondary"`로 둔다.
+
+**동작·props·DOM 구조는 바꾸지 않는다.** 세 컴포넌트 모두 기존 테스트가 있으므로
+그대로 통과해야 한다. 통과하지 않으면 구조를 바꾼 것이니 되돌린다.
+
+`LikeButton`은 좋아요 눌린 상태를 색으로 구분한다 — 눌림은 `text-accent`,
+안 눌림은 `text-fg-muted`로 둔다.
+
+- [ ] **Step 7: 전체 검증 후 커밋**
 
 Run: `npm run test && npm run build && npm run lint`
 
