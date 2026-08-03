@@ -213,7 +213,8 @@ const PostDetailPage = () => {
                 <h2 className="mb-4 text-lg font-bold text-fg">댓글</h2>
 
                 {/* 댓글 작성 폼 (로그인한 사람만 보이게 하려면 {myUserId && (...)} 로 감싸도 좋습니다) */}
-                <form onSubmit={handleCommentSubmit} className="mb-6">
+                {/* aria-label과 noValidate를 두는 이유는 LoginPage 주석 참고. */}
+                <form onSubmit={handleCommentSubmit} aria-label="댓글 작성" noValidate className="mb-6">
                     <Field label="댓글" htmlFor="comment" error={commentError || undefined}>
                         <Textarea
                             id="comment"
