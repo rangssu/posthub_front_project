@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -24,7 +24,10 @@ vi.mock('../api/axios', () => ({
 const api = (await import('../api/axios')).default as unknown as {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;
+    put: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
 };
+const mockDelete = api.delete;
 
 const board = { id: 1, boardName: '자유게시판' };
 
@@ -91,46 +94,54 @@ describe('BoardPage 페이징', () => {
 });
 
 /**
- * 리프레시 토큰은 httpOnly 쿠키라 프론트가 지울 수 없다.
- * 서버에 알리지 않으면 로그아웃한 뒤에도 그 쿠키로 새 액세스 토큰을 받아갈 수 있다.
+ * 로그인/로그아웃은 Task 6에서 Header(공통 헤더)로 옮겨갔다. BoardPage는 더 이상
+ * 로그아웃 버튼도 handleLogout도 갖지 않으므로, 그 동작을 검증하던 테스트도
+ * Header 쪽 책임이 됐다. 여기서는 BoardPage 고유의 동작(게시판 삭제 다이얼로그)만 다룬다.
+ *
+ * window.confirm은 동기라 삭제 버튼을 누르면 그 자리에서 바로 API가 나갔다.
+ * Dialog는 비동기라 "삭제 버튼 클릭 → 다이얼로그의 삭제 버튼 클릭"이라는 두 단계로
+ * 쪼개졌다. 이 사이에 API가 나가지 않는지, 취소하면 아예 나가지 않는지를 검증한다.
  */
-describe('BoardPage 로그아웃', () => {
+describe('BoardPage 게시판 삭제', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
-        vi.stubGlobal('alert', vi.fn());
-        // jsdom에서는 location.reload가 구현돼 있지 않아 호출하면 에러가 난다.
-        vi.stubGlobal('location', { ...window.location, reload: vi.fn() });
 
         api.get.mockImplementation((url: string) => {
             if (url === '/boards') return Promise.resolve({ data: [board] });
             return Promise.resolve(bootPage(makePosts(1, 1), 1, 1));
         });
         localStorage.setItem('accessToken', 'token');
-        localStorage.setItem('userId', '1');
-        localStorage.setItem('role', 'USER');
+        localStorage.setItem('role', 'ADMIN');
     });
 
-    const clickLogout = async () => {
+    it('게시판 삭제는 확인 다이얼로그를 거친다', async () => {
+        const user = userEvent.setup();
+
+        renderBoardPage(); // 기존 헬퍼
+
+        // 관리자에게만 보이는 삭제 버튼
+        await user.click(await screen.findByRole('button', { name: '게시판 삭제' }));
+
+        // 이 시점에는 아직 API가 나가지 않아야 한다.
+        expect(mockDelete).not.toHaveBeenCalled();
+
+        // 페이지의 삭제 버튼과 이름이 같을 수 있어 다이얼로그 안으로 범위를 좁힌다.
+        const dialog = screen.getByRole('dialog');
+        await user.click(within(dialog).getByRole('button', { name: '삭제' }));
+        expect(mockDelete).toHaveBeenCalledWith('/boards/1');
+    });
+
+    it('삭제 다이얼로그에서 취소하면 아무것도 지우지 않는다', async () => {
+        const user = userEvent.setup();
+
         renderBoardPage();
-        await userEvent.click(await screen.findByRole('button', { name: '로그아웃' }));
-    };
 
-    it('서버에 로그아웃을 알리고 인증 정보를 지운다', async () => {
-        api.post.mockResolvedValue({ status: 204 });
+        await user.click(await screen.findByRole('button', { name: '게시판 삭제' }));
 
-        await clickLogout();
+        const dialog = screen.getByRole('dialog');
+        await user.click(within(dialog).getByRole('button', { name: '취소' }));
 
-        await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/logout'));
-        expect(localStorage.getItem('accessToken')).toBeNull();
-    });
-
-    it('서버 로그아웃이 실패해도 인증 정보는 지운다', async () => {
-        // 서버가 죽었다고 로그아웃이 막히면 안 된다.
-        api.post.mockRejectedValue(new Error('network'));
-
-        await clickLogout();
-
-        await waitFor(() => expect(localStorage.getItem('accessToken')).toBeNull());
+        expect(mockDelete).not.toHaveBeenCalled();
     });
 });
