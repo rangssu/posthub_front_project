@@ -24,8 +24,6 @@ describe('LikeButton', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
-        // jsdom에는 alert가 없어서 스텁이 없으면 클릭이 예외로 터진다.
-        vi.stubGlobal('alert', vi.fn());
     });
 
     it('비로그인 상태에서 클릭하면 API를 부르지 않는다', async () => {

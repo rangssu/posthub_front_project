@@ -2,6 +2,7 @@
 import axios from 'axios';
 import type { InternalAxiosRequestConfig } from 'axios';
 import { refreshAccessToken } from './refreshClient';
+import { toast } from '../components/ui/toastStore';
 
 // 1. 기본 설정: 스프링부트 주소를 미리 적어둡니다.
 const api = axios.create({
@@ -83,6 +84,16 @@ const canRetry = (request: RetriableRequest): boolean => {
     return !(request.url ?? '').startsWith('/auth/');
 };
 
+/**
+ * 이동이 예약됐는지. 페이지가 여러 요청을 동시에 보내면 401도 여러 개 돌아오는데,
+ * 이동을 지연시키는 동안에는 pathname이 아직 /login이 아니라 아래 가드를 다 통과한다.
+ * alert는 블로킹이라 이 문제가 드러나지 않았지만 토스트는 그대로 쌓인다.
+ */
+let logoutScheduled = false;
+
+/** 토스트를 읽을 시간(ms). 바로 이동하면 페이지가 새로 로드돼 문구가 보이지 않는다. */
+const LOGOUT_REDIRECT_DELAY_MS = 1200;
+
 /** 저장된 인증 정보를 버리고 로그인 화면으로 보냅니다. */
 const logoutLocally = () => {
     console.warn('인증이 만료되었습니다. 로그아웃 처리합니다.');
@@ -92,10 +103,17 @@ const logoutLocally = () => {
     localStorage.removeItem('role');
 
     // 이미 로그인 화면이라면 다시 보내지 않습니다 (로그인 실패 시 무한 알림 방지)
-    if (window.location.pathname !== '/login') {
-        alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+    if (window.location.pathname === '/login' || logoutScheduled) return;
+    logoutScheduled = true;
+
+    /*
+     * 여기는 React 트리 밖(axios 인터셉터)이라 훅을 부를 수 없다.
+     * 토스트를 모듈 함수로 만든 이유가 이 한 줄이다.
+     */
+    toast.error('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+    setTimeout(() => {
         window.location.href = '/login';
-    }
+    }, LOGOUT_REDIRECT_DELAY_MS);
 };
 
 /**

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { errorMessage } from '../api/axios';
+import { toast } from '../components/ui/toastStore';
 
 /** 좋아요를 누를 대상. 그대로 URL 경로가 된다. */
 export type LikeTarget = 'posts' | 'comments';
@@ -40,7 +41,7 @@ export const useLike = (target: LikeTarget, id: number, initial: LikeState) => {
         // 비로그인은 API를 부르지 않는다. 401이 나가면 axios 인터셉터가
         // 한 번도 로그인한 적 없는 사람에게 '세션이 만료되었습니다'를 띄운다.
         if (!localStorage.getItem('accessToken')) {
-            alert('로그인이 필요합니다.');
+            toast.error('로그인이 필요합니다.');
             navigate('/login');
             return;
         }
@@ -57,7 +58,7 @@ export const useLike = (target: LikeTarget, id: number, initial: LikeState) => {
             setLiked(response.data.liked);
             setCount(response.data.likeCount);
         } catch (error) {
-            alert(errorMessage(error, '좋아요 처리에 실패했습니다.'));
+            toast.error(errorMessage(error, '좋아요 처리에 실패했습니다.'));
         } finally {
             setPending(false);
         }
