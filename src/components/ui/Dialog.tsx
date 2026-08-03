@@ -36,6 +36,16 @@ export const Dialog = ({
     const titleId = useId();
     const descriptionId = useId();
 
+    // 최신 onClose를 담아둔다. 호출부가 onClose={() => ...}처럼 인라인
+    // 화살표를 넘기면(흔한 패턴이다) 부모가 리렌더될 때마다 새 함수가 되는데,
+    // 이걸 effect 의존성에 그대로 넣으면 다이얼로그가 열려 있는 동안에도
+    // 타이핑 한 글자마다 effect가 cleanup+setup을 다시 돌며 포커스를
+    // 빼앗는다. ref로 우회해 effect는 open 전환에만 반응하게 한다.
+    const onCloseRef = useRef(onClose);
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    });
+
     useEffect(() => {
         if (!open) return;
 
@@ -50,7 +60,7 @@ export const Dialog = ({
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                onClose();
+                onCloseRef.current();
                 return;
             }
             if (event.key !== 'Tab' || !panel) return;
@@ -78,7 +88,7 @@ export const Dialog = ({
             document.body.style.overflow = previousOverflow;
             restoreRef.current?.focus();
         };
-    }, [open, onClose]);
+    }, [open]);
 
     if (!open) return null;
 
