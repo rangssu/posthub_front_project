@@ -1,5 +1,5 @@
 import type { TextareaHTMLAttributes } from 'react';
-import { inputBase, inputTone } from './Input';
+import { inputBase, inputTone } from './inputStyles';
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
     invalid?: boolean;

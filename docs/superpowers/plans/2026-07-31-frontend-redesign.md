@@ -11,7 +11,11 @@
 ## Global Constraints
 
 - **새 런타임 의존성을 추가하지 않는다.** `package.json`의 `dependencies`는 `axios`, `react`, `react-dom`, `react-router-dom` 넷으로 유지한다.
-- **컴포넌트에서 팔레트 이름을 쓰지 않는다.** `text-stone-800`, `bg-emerald-600` 금지. 의미 토큰(`text-fg`, `bg-accent`)만 쓴다.
+- **컴포넌트에서 팔레트 이름을 쓰지 않는다.** `text-stone-800`, `bg-emerald-600` 금지. 의미 토큰만 쓴다.
+  유효한 **토큰 이름**은 13종이다 — `bg` `surface` `border` `divider` `fg` `fg-muted` `fg-subtle`
+  `accent` `accent-fg` `accent-subtle` `danger` `danger-fg` `danger-subtle`. 여기에 Tailwind의 어떤
+  색 접두사든 붙여 쓸 수 있다(`bg-surface`, `text-fg-muted`, `border-divider`, `ring-accent` 등).
+  **이 13종에 없는 이름을 쓰면 Tailwind가 빌드 오류도 경고도 없이 조용히 무시한다.**
 - **초록은 브랜드 포인트 전용이다.** 성공 신호로 쓰지 않는다. 성공 토스트는 무채색(`surface`), 오류만 `danger`.
 - **한글 주석과 커밋 메시지**를 쓴다. 기존 코드 관례를 따른다. 커밋 메시지는 `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`로 끝낸다.
 - **`refreshClient.test.ts`의 경합 테스트를 건드리지 않는다.** 리프레시가 단일 비행이 아니면 토큰 계열 전체가 폐기돼 로그인 세션이 통째로 날아간다.
