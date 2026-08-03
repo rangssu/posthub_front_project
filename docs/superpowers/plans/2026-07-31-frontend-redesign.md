@@ -1083,6 +1083,17 @@ export const Dialog = ({
 }: DialogProps) => {
     const panelRef = useRef<HTMLDivElement>(null);
     const restoreRef = useRef<HTMLElement | null>(null);
+    const onCloseRef = useRef(onClose);
+
+    /*
+     * onClose를 ref에 담아 아래 effect의 의존성에서 뺀다.
+     * 호출부가 onClose={() => setOpen(false)} 같은 인라인 화살표를 넘기면 매 렌더마다
+     * 새 함수가 되는데, 그게 의존성에 있으면 다이얼로그가 열린 채로 effect가 다시 돌아
+     * 포커스를 첫 요소로 되돌린다. 이름 입력 폼이 들어가면 한 글자마다 포커스가 날아간다.
+     */
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    });
     const titleId = useId();
     const descriptionId = useId();
 
@@ -1100,7 +1111,7 @@ export const Dialog = ({
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                onClose();
+                onCloseRef.current();
                 return;
             }
             if (event.key !== 'Tab' || !panel) return;
@@ -1128,7 +1139,7 @@ export const Dialog = ({
             document.body.style.overflow = previousOverflow;
             restoreRef.current?.focus();
         };
-    }, [open, onClose]);
+    }, [open]);
 
     if (!open) return null;
 
