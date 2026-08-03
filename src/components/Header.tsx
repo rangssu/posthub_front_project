@@ -38,7 +38,7 @@ const Header = () => {
 
     return (
         <header role="banner" className="border-b border-border">
-            <div className="mx-auto flex max-w-4xl items-center gap-4 px-4 py-3">
+            <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-4 px-4 py-3">
                 <Link
                     to="/boards"
                     className="text-lg font-semibold tracking-tight text-fg hover:text-accent"
@@ -46,10 +46,17 @@ const Header = () => {
                     PostHub
                 </Link>
 
-                <div className="ml-auto flex items-center gap-2">
-                    <div className="hidden sm:block">
-                        <SearchBox />
-                    </div>
+                {/*
+                 * sm 미만에서는 basis-full로 다음 줄로 밀려 검색창이 항상 보인다.
+                 * sm 이상에서는 order-none으로 로고 바로 다음 자리로 돌아가고,
+                 * ml-auto가 검색창과 그 뒤(테마·로그인) 그룹을 오른쪽으로 민다.
+                 * SearchBox를 두 번 마운트하면 입력 상태가 갈리므로 여기 한 곳에만 둔다.
+                 */}
+                <div className="order-last basis-full sm:order-none sm:ml-auto sm:basis-auto">
+                    <SearchBox />
+                </div>
+
+                <div className="ml-auto flex items-center gap-2 sm:ml-0">
                     <ThemeToggle />
                     {isLoggedIn ? (
                         <Button variant="secondary" size="sm" onClick={handleLogout}>

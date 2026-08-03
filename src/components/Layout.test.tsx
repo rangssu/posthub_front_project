@@ -44,4 +44,12 @@ describe('Layout', () => {
         renderLayout();
         expect(screen.getByRole('button', { name: /테마/ })).toBeInTheDocument();
     });
+
+    it('검색창이 헤더에 정확히 하나만 렌더링된다', () => {
+        // 좁은 화면용과 넓은 화면용으로 SearchBox를 두 번 마운트하면 입력 상태가
+        // 갈린다. jsdom은 미디어 쿼리를 적용하지 않으므로 "좁은 화면에서 보인다"를
+        // 직접 검증할 수는 없지만, 최소한 하나만 존재하는지는 검증할 수 있다.
+        renderLayout();
+        expect(screen.getAllByRole('searchbox', { name: '검색어' })).toHaveLength(1);
+    });
 });
