@@ -19,9 +19,9 @@ const LikeButton = ({ target, id, initial, size = 'md' }: LikeButtonProps) => {
             disabled={pending}
             aria-label="좋아요"
             aria-pressed={liked}
-            className={`inline-flex items-center gap-1 transition rounded disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`inline-flex items-center gap-1 rounded transition disabled:cursor-not-allowed disabled:opacity-50 ${
                 size === 'sm' ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'
-            } ${liked ? 'text-red-500 hover:text-red-600' : 'text-gray-400 hover:text-gray-600'}`}
+            } ${liked ? 'text-accent hover:opacity-80' : 'text-fg-muted hover:text-fg'}`}
         >
             <span aria-hidden="true">{liked ? '♥' : '♡'}</span>
             <span>{count}</span>

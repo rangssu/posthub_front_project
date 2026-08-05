@@ -21,6 +21,7 @@ vi.mock('../api/axios', () => ({
 const api = (await import('../api/axios')).default as unknown as {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
 };
 
 const post = {
@@ -68,8 +69,6 @@ describe('PostDetailPage 좋아요 연동', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
-        // jsdom에는 alert가 없어서 스텁이 없으면 여러 경로에서 예외가 난다.
-        vi.stubGlobal('alert', vi.fn());
     });
 
     it('게시글의 좋아요 버튼은 게시글을 대상으로 한다', async () => {
@@ -119,5 +118,97 @@ describe('PostDetailPage 좋아요 연동', () => {
         const commentBlock = screen.getByText('댓글 내용').closest('div')!.parentElement!;
         const commentLikeButton = within(commentBlock).getByRole('button', { name: '좋아요' });
         expect(within(commentLikeButton).getByText('2')).toBeInTheDocument();
+    });
+});
+
+/**
+ * 브라우저 기본 팝업을 걷어낸 자리를 검증한다.
+ *
+ * confirm은 동기라 "확인하지 않으면 요청이 안 나간다"가 코드 한 줄로 보장됐지만,
+ * 다이얼로그는 비동기라 그 보장이 상태 관리로 옮겨갔다. 확인을 거치지 않고
+ * 삭제 요청이 나가는 회귀는 여기서만 잡힌다.
+ */
+describe('PostDetailPage 삭제 확인과 댓글 검증', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.clear();
+        localStorage.setItem('accessToken', 'test-token');
+        mockApiGet();
+    });
+
+    it('게시글 삭제는 확인을 거친다', async () => {
+        // post.userId가 1이라 이 계정에만 게시글 삭제 버튼이 보인다.
+        localStorage.setItem('userId', '1');
+        const user = userEvent.setup();
+
+        renderPostDetailPage();
+
+        await user.click(await screen.findByRole('button', { name: '삭제' }));
+        expect(api.delete).not.toHaveBeenCalled();
+
+        // 페이지의 삭제 버튼과 이름이 같으므로 다이얼로그 안으로 범위를 좁힌다.
+        const dialog = screen.getByRole('dialog', { name: '게시글을 삭제할까요?' });
+        await user.click(within(dialog).getByRole('button', { name: '삭제' }));
+
+        expect(api.delete).toHaveBeenCalledWith('/posts/7');
+    });
+
+    it('취소하면 삭제 요청이 나가지 않는다', async () => {
+        localStorage.setItem('userId', '1');
+        const user = userEvent.setup();
+
+        renderPostDetailPage();
+
+        await user.click(await screen.findByRole('button', { name: '삭제' }));
+        await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: '취소' }));
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(api.delete).not.toHaveBeenCalled();
+    });
+
+    it('댓글 삭제는 그 댓글의 id로 확인을 거친다', async () => {
+        // comment.userId가 99라 이 계정에는 댓글 삭제 버튼만 보인다(게시글 것은 안 보인다).
+        localStorage.setItem('userId', '99');
+        const user = userEvent.setup();
+
+        renderPostDetailPage();
+
+        await user.click(await screen.findByRole('button', { name: '댓글 삭제' }));
+        expect(api.delete).not.toHaveBeenCalled();
+
+        const dialog = screen.getByRole('dialog', { name: '댓글을 삭제할까요?' });
+        await user.click(within(dialog).getByRole('button', { name: '삭제' }));
+
+        // commentId(42)를 써야 한다. userId(99)를 쓰면 남의 댓글을 지운다.
+        expect(api.delete).toHaveBeenCalledWith('/comments/42');
+    });
+
+    it('빈 댓글은 인라인 오류를 보여주고 전송하지 않는다', async () => {
+        const user = userEvent.setup();
+
+        renderPostDetailPage();
+
+        await user.click(await screen.findByRole('button', { name: '댓글 등록' }));
+
+        // 토스트가 아니라 입력 아래 인라인이다. 어느 칸이 비었는지 알려줘야 쓸모가 있다.
+        expect(screen.getByRole('alert')).toHaveTextContent('댓글 내용을 입력해주세요.');
+        expect(screen.getByLabelText('댓글')).toHaveAccessibleDescription('댓글 내용을 입력해주세요.');
+        expect(api.post).not.toHaveBeenCalled();
+    });
+
+    it('댓글을 등록하면 인라인 오류가 사라진다', async () => {
+        const user = userEvent.setup();
+        api.post.mockResolvedValue({ data: {} });
+
+        renderPostDetailPage();
+
+        await user.click(await screen.findByRole('button', { name: '댓글 등록' }));
+        expect(screen.getByRole('alert')).toBeInTheDocument();
+
+        await user.type(screen.getByLabelText('댓글'), '새 댓글');
+        await user.click(screen.getByRole('button', { name: '댓글 등록' }));
+
+        expect(api.post).toHaveBeenCalledWith('/posts/7/comments', { content: '새 댓글' });
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 });

@@ -3,6 +3,14 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api, { errorMessage } from '../api/axios';
 import { CONTENT_MAX, TITLE_MAX } from '../constants/postLimits';
+import Layout from '../components/Layout';
+import { Button } from '../components/ui/Button';
+import { Field } from '../components/ui/Field';
+import { Input } from '../components/ui/Input';
+import { Textarea } from '../components/ui/Textarea';
+import { toast } from '../components/ui/toastStore';
+import { validatePost } from './postFormValidation';
+import type { PostErrors } from './postFormValidation';
 
 const PostWritePage = () => {
     // URL에서 어떤 게시판에 글을 쓸지 번호를 가져옵니다. (예: /boards/1/write 이면 boardId는 "1")
@@ -12,16 +20,16 @@ const PostWritePage = () => {
     // 사용자가 입력할 제목과 내용을 담을 상태(state)입니다.
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    const [errors, setErrors] = useState<PostErrors>({});
 
     // 폼이 제출될 때(작성 완료 버튼 클릭 시) 실행되는 함수입니다.
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); // 폼 제출 시 새로고침 방지
 
         // 빈 칸 검사 (간단한 유효성 검사)
-        if (!title.trim() || !content.trim()) {
-            alert('제목과 내용을 모두 입력해주세요.');
-            return;
-        }
+        const nextErrors = validatePost(title, content);
+        setErrors(nextErrors);
+        if (Object.keys(nextErrors).length > 0) return;
 
         try {
             /**
@@ -34,70 +42,64 @@ const PostWritePage = () => {
                 content: content
             });
 
-            alert('게시글이 성공적으로 등록되었습니다.');
+            toast.success('게시글을 등록했습니다.');
 
             // 👇 [수정됨] 글 작성이 끝나면 방금 작성한 글의 상세 페이지(detail)로 넘어갑니다.
             // 백엔드에서 리턴해준 게시글의 ID (response.data)를 이용합니다.
             const newPostId = response.data;
             navigate(`/posts/${newPostId}`);
-
         } catch (error) {
             console.error('글 작성 에러:', error);
-            alert(errorMessage(error, '글 작성에 실패했습니다.'));
+            toast.error(errorMessage(error, '글 작성에 실패했습니다.'));
         }
     };
 
     return (
-        <div className="max-w-4xl px-4 py-8 mx-auto">
-            <h1 className="mb-6 text-2xl font-bold">새 글 작성하기</h1>
+        <Layout>
+            <h1 className="mb-6 text-2xl font-bold text-fg">새 글 작성하기</h1>
 
-            {/* 글쓰기 폼 영역 */}
-            <form onSubmit={handleSubmit} className="p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
-
-                {/* 제목 입력 영역 */}
-                <div className="mb-4">
-                    <label className="block mb-2 text-sm font-bold text-gray-700">제목</label>
-                    <input
+            {/* 글쓰기 폼 영역. noValidate는 LoginPage 주석 참고. */}
+            <form
+                onSubmit={handleSubmit}
+                aria-label="새 글 작성"
+                noValidate
+                className="p-6 border border-border rounded-lg bg-bg space-y-4"
+            >
+                <Field label="제목" htmlFor="title" error={errors.title}>
+                    <Input
+                        id="title"
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="제목을 입력하세요"
                         maxLength={TITLE_MAX}
-                        className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow-appearance-none focus:outline-none focus:shadow-outline"
+                        invalid={Boolean(errors.title)}
+                        aria-describedby={errors.title ? 'title-error' : undefined}
                     />
-                </div>
+                </Field>
 
-                {/* 내용 입력 영역 */}
-                <div className="mb-6">
-                    <label className="block mb-2 text-sm font-bold text-gray-700">내용</label>
-                    <textarea
+                <Field label="내용" htmlFor="content" error={errors.content}>
+                    <Textarea
+                        id="content"
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         placeholder="내용을 입력하세요"
                         maxLength={CONTENT_MAX}
                         rows={10} // 높이를 넉넉하게 설정
-                        className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow-appearance-none focus:outline-none focus:shadow-outline resize-none"
+                        invalid={Boolean(errors.content)}
+                        aria-describedby={errors.content ? 'content-error' : undefined}
                     />
-                </div>
+                </Field>
 
                 {/* 하단 버튼 영역 */}
-                <div className="flex items-center justify-end space-x-4">
-                    <button
-                        type="button"
-                        onClick={() => navigate(-1)}
-                        className="px-4 py-2 font-bold text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
-                    >
+                <div className="flex items-center justify-end gap-2">
+                    <Button variant="secondary" onClick={() => navigate(-1)}>
                         취소
-                    </button>
-                    <button
-                        type="submit"
-                        className="px-4 py-2 font-bold text-white bg-blue-600 rounded hover:bg-blue-700"
-                    >
-                        작성 완료
-                    </button>
+                    </Button>
+                    <Button type="submit">작성 완료</Button>
                 </div>
             </form>
-        </div>
+        </Layout>
     );
 };
 

@@ -1,39 +1,31 @@
 // src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastProvider } from './components/ui/Toast';
 import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage'; // 👈 추가된 부분
-import BoardPage from './pages/BoardPage'; // 👈 새로 만든 페이지 불러오기
-import PostDetailPage from './pages/PostDetailPage'; // 👈 [추가] 상세 페이지 컴포넌트 불러오기
-import PostWritePage from './pages/PostWritePage'; // 👈 [추가] 글쓰기 페이지 불러오기
-import PostEditPage from './pages/PostEditPage'; // 👈 [추가] 수정 페이지 컴포넌트 불러오기
+import SignupPage from './pages/SignupPage';
+import BoardPage from './pages/BoardPage';
+import PostDetailPage from './pages/PostDetailPage';
+import PostWritePage from './pages/PostWritePage';
+import PostEditPage from './pages/PostEditPage';
 import SearchPage from './pages/SearchPage';
-
 
 function App() {
     return (
-        <BrowserRouter>
-            <Routes>
-                {/* 👇 [수정됨] 처음 사이트에 들어왔을 때(/) 대문자가 없는 /boards 로 보냅니다. */}
-                <Route path="/" element={<Navigate to="/boards" replace />} />
-                <Route path="/login" element={<LoginPage />} />
-
-                {/* 👇 회원가입 페이지 경로 추가 */}
-                <Route path="/signup" element={<SignupPage />} />
-
-                {/* 👇 [수정됨] URL에서 대문자를 지우고 /boards 로 맞췄습니다. */}
-                <Route path="/boards" element={<BoardPage />} />
-
-                {/* 검색 결과. 검색어와 페이지는 쿼리스트링(?q=&page=)으로 받는다. */}
-                <Route path="/search" element={<SearchPage />} />
-
-                {/* 👇 [추가] 게시글 상세 페이지 경로 추가 :postId는 URL에서 동적으로 변하는 파라미터(게시글 번호)를 의미합니다.*/}
-                <Route path="/posts/:postId" element={<PostDetailPage />} />
-                {/* 👇 [추가] 글쓰기 페이지 경로 등록 어떤 게시판에 글을 쓸지 알아야 하므로 주소에 :boardId 를 포함합니다. */}
-                <Route path="/boards/:boardId/write" element={<PostWritePage />} />
-                {/* 👇 [추가] 글 수정 페이지 경로 등록 */}
-                <Route path="/posts/:postId/edit" element={<PostEditPage />} />
-            </Routes>
-        </BrowserRouter>
+        <ToastProvider>
+            <BrowserRouter>
+                <Routes>
+                    <Route path="/" element={<Navigate to="/boards" replace />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/signup" element={<SignupPage />} />
+                    <Route path="/boards" element={<BoardPage />} />
+                    {/* 검색어와 페이지는 쿼리스트링(?q=&page=)으로 받는다. */}
+                    <Route path="/search" element={<SearchPage />} />
+                    <Route path="/posts/:postId" element={<PostDetailPage />} />
+                    <Route path="/boards/:boardId/write" element={<PostWritePage />} />
+                    <Route path="/posts/:postId/edit" element={<PostEditPage />} />
+                </Routes>
+            </BrowserRouter>
+        </ToastProvider>
     );
 }
 

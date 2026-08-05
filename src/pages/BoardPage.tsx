@@ -1,10 +1,15 @@
 // src/pages/BoardPage.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { errorMessage } from '../api/axios';
+import Layout from '../components/Layout';
 import PostTable from '../components/PostTable';
 import Pagination from '../components/Pagination';
-import SearchBox from '../components/SearchBox';
+import { Button } from '../components/ui/Button';
+import { Dialog } from '../components/ui/Dialog';
+import { Field } from '../components/ui/Field';
+import { Input } from '../components/ui/Input';
+import { toast } from '../components/ui/toastStore';
 import { PAGE_SIZE } from '../constants/pagination';
 import type { PostSummary } from '../types/post';
 import type { PageResponse } from '../types/page';
@@ -14,6 +19,18 @@ interface Board {
     id: number;
     boardName: string; // 👇 [수정완료] tabName -> boardName 으로 변경!
 }
+
+/**
+ * 열려 있는 다이얼로그와 그 대상.
+ *
+ * window.confirm/prompt는 동기라 호출부가 한 줄로 이어졌지만 다이얼로그는
+ * 비동기다. "무엇에 대한 확인인지"를 여기 담아 확인 클릭 시점까지 들고 간다.
+ */
+type BoardDialog =
+    | { kind: 'none' }
+    | { kind: 'create' }
+    | { kind: 'rename'; boardId: number; currentName: string }
+    | { kind: 'delete'; boardId: number; boardName: string };
 
 const BoardPage = () => {
     const navigate = useNavigate();
@@ -25,32 +42,32 @@ const BoardPage = () => {
     const [currentPage, setCurrentPage] = useState<number>(0); // 스프링은 0페이지부터 시작
     const [totalPages, setTotalPages] = useState<number>(0);
 
+    const [dialog, setDialog] = useState<BoardDialog>({ kind: 'none' });
+    const [boardName, setBoardName] = useState('');
+
     // 1. 로그인 상태 확인 (토큰이 있는지)
     const isLoggedIn = !!localStorage.getItem('accessToken');
     // 게시판 관리는 관리자만 가능합니다. 백엔드도 ROLE_ADMIN을 요구하므로 UI만 숨기는 게 아닙니다.
     const isAdmin = localStorage.getItem('role') === 'ADMIN';
 
-    // 2. 로그아웃 기능
-    const handleLogout = async () => {
-        /*
-         * 서버에도 알려야 로그아웃이 실제로 끝납니다. 리프레시 토큰은 httpOnly 쿠키라
-         * 프론트가 지울 수 없고, 서버가 계열을 폐기하지 않으면 그 쿠키로 계속
-         * 새 액세스 토큰을 받아갈 수 있습니다.
-         *
-         * 실패해도 로컬 정리는 그대로 진행합니다. 서버가 죽었다고 로그아웃이 막히면
-         * 안 됩니다. 백엔드는 쿠키가 없어도 204를 주는 멱등 설계라 재시도에 안전합니다.
-         */
-        try {
-            await api.post('/auth/logout');
-        } catch {
-            console.warn('서버 로그아웃에 실패했습니다. 로컬 인증 정보만 정리합니다.');
-        }
+    /*
+     * activeBoardId를 "탭을 바꾸는 지점"이 아니라 별도 effect로 관찰해 currentPage를
+     * 0으로 되돌리던 코드가 있었다. 그 effect는 setState를 effect 안에서 동기 호출하는
+     * 꼴이라 react-hooks/set-state-in-effect에 걸린다. 그리고 애초에 "탭이 바뀌면
+     * 페이지도 되돌린다"는 건 파생 상태가 아니라 탭을 바꾸는 그 동작 자체의 일부다.
+     *
+     * fetchBoards는 삭제 후 재조회처럼 렌더 중간에도 실행되기 때문에 activeBoardId를
+     * 상태(state)로만 읽으면 같은 틱에서 먼저 예약한 setActiveBoardId(null)이 아직
+     * 반영되기 전 값을 읽게 된다. ref로 최신 값을 동기적으로 들고 있어야
+     * "지금 활성 게시판이 없다"는 판단이 타이밍에 흔들리지 않는다.
+     */
+    const activeBoardIdRef = useRef<number | null>(null);
 
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('role');
-        alert('로그아웃 되었습니다.');
-        window.location.reload();
+    const selectBoard = (boardId: number) => {
+        if (boardId === activeBoardId) return;
+        activeBoardIdRef.current = boardId;
+        setActiveBoardId(boardId);
+        setCurrentPage(0);
     };
 
     // 3. 페이지 렌더링 시 게시판(탭) 목록 불러오기
@@ -66,8 +83,12 @@ const BoardPage = () => {
 
             // 추출한 배열의 길이를 기준으로 탭을 설정합니다.
             if (boardsData.length > 0) {
-                setActiveBoardId((prev) => prev ? prev : boardsData[0].id); // 첫 번째 탭 자동 선택
+                // 지금 활성 게시판이 없을 때만(최초 로딩, 또는 활성 게시판 삭제 직후) 첫 탭을 자동 선택합니다.
+                if (activeBoardIdRef.current === null) {
+                    selectBoard(boardsData[0].id);
+                }
             } else {
+                activeBoardIdRef.current = null;
                 setActiveBoardId(null);
                 setPosts([]);
             }
@@ -77,15 +98,17 @@ const BoardPage = () => {
     };
 
     useEffect(() => {
-        fetchBoards();
+        // fetchBoards를 effect 밖에 두고 여기서 직접 호출하면 컴파일러가 그 안의
+        // setState를 "effect 안에서 동기 호출"로 본다. 얇은 래퍼로 한 겹 감싸면
+        // fetchBoards는 생성·수정·삭제 후 재조회에도 그대로 재사용할 수 있다.
+        const load = async () => {
+            await fetchBoards();
+        };
+        load();
+        // fetchBoards는 매 렌더마다 새로 만들어지는 함수라 deps에 넣으면 렌더될 때마다
+        // 다시 요청이 나간다. 최초 1회만 불러오는 마운트 전용 로딩이라 의도적으로 뺀다.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    // 👇 [추가] 탭(activeBoardId)이 바뀔 때마다 페이지를 0(첫 페이지)으로 초기화합니다.
-    useEffect(() => {
-        if (activeBoardId !== null) {
-            setCurrentPage(0);
-        }
-    }, [activeBoardId]);
 
     // 4. 활성화된 탭이 바뀌거나 페이지 번호(currentPage)가 바뀔 때마다 해당 게시판의 글 목록 불러오기
     useEffect(() => {
@@ -115,108 +138,114 @@ const BoardPage = () => {
         fetchPosts();
     }, [activeBoardId, currentPage]); // 👈 [추가] currentPage가 바뀔 때도 useEffect가 다시 실행되도록 추가
 
-    // [추가] 게시판 생성 기능
-    const handleCreateBoard = async () => {
-        const newBoardName = window.prompt('새로 만들 게시판의 이름을 입력하세요:');
-        if (!newBoardName || !newBoardName.trim()) return;
+    const closeDialog = () => {
+        setDialog({ kind: 'none' });
+        setBoardName('');
+    };
+
+    const openCreate = () => {
+        setBoardName('');
+        setDialog({ kind: 'create' });
+    };
+
+    const openRename = (boardId: number, currentName: string) => {
+        setBoardName(currentName);
+        setDialog({ kind: 'rename', boardId, currentName });
+    };
+
+    const openDelete = (boardId: number, name: string) => {
+        setDialog({ kind: 'delete', boardId, boardName: name });
+    };
+
+    const submitCreate = async () => {
+        const name = boardName.trim();
+        if (!name) return;
 
         try {
-            // 👇 [수정완료] 백엔드로 보낼 때도 boardName 이라는 짝표로 보냅니다!
-            await api.post('/boards', { boardName: newBoardName.trim() });
-            alert('게시판이 생성되었습니다!');
-            fetchBoards(); // 목록 새로고침
+            await api.post('/boards', { boardName: name });
+            toast.success('게시판을 만들었습니다.');
+            closeDialog();
+            fetchBoards();
         } catch (error) {
-            console.error('게시판 생성 실패', error);
-            alert(errorMessage(error, '게시판 생성에 실패했습니다.'));
+            toast.error(errorMessage(error, '게시판 생성에 실패했습니다.'));
         }
     };
 
-    // [추가] 게시판 이름 수정 기능
-    const handleUpdateBoard = async (boardId: number, currentName: string) => {
-        const newBoardName = window.prompt('수정할 게시판 이름을 입력하세요:', currentName);
-        if (!newBoardName || newBoardName.trim() === currentName) return;
+    const submitRename = async () => {
+        if (dialog.kind !== 'rename') return;
+        const name = boardName.trim();
+        if (!name || name === dialog.currentName) {
+            closeDialog();
+            return;
+        }
 
         try {
-            // 👇 [수정완료] 수정할 때도 boardName 사용!
-            await api.put(`/boards/${boardId}`, { boardName: newBoardName.trim() });
-            alert('게시판 이름이 변경되었습니다.');
-            fetchBoards(); // 목록 새로고침
+            await api.put(`/boards/${dialog.boardId}`, { boardName: name });
+            toast.success('게시판 이름을 바꿨습니다.');
+            closeDialog();
+            fetchBoards();
         } catch (error) {
-            console.error('게시판 수정 실패', error);
-            alert(errorMessage(error, '게시판 수정에 실패했습니다.'));
+            toast.error(errorMessage(error, '게시판 수정에 실패했습니다.'));
         }
     };
 
-    // [추가] 게시판 삭제 기능
-    const handleDeleteBoard = async (boardId: number, boardName: string) => {
-        if (!window.confirm(`'${boardName}' 게시판을 정말 삭제하시겠습니까?\n게시글이 하나라도 남아 있으면 삭제되지 않습니다.`)) return;
+    const submitDelete = async () => {
+        if (dialog.kind !== 'delete') return;
 
         try {
-            await api.delete(`/boards/${boardId}`);
-            alert('게시판이 삭제되었습니다.');
-            if (activeBoardId === boardId) setActiveBoardId(null);
-            fetchBoards(); // 목록 새로고침
+            await api.delete(`/boards/${dialog.boardId}`);
+            toast.success('게시판을 삭제했습니다.');
+            if (activeBoardId === dialog.boardId) {
+                activeBoardIdRef.current = null;
+                setActiveBoardId(null);
+            }
+            closeDialog();
+            fetchBoards();
         } catch (error) {
-            console.error('게시판 삭제 실패', error);
-            alert(errorMessage(error, '게시판 삭제에 실패했습니다.'));
+            toast.error(errorMessage(error, '게시판 삭제에 실패했습니다.'));
         }
     };
 
     return (
-        <div className="max-w-4xl px-4 py-8 mx-auto">
-            {/* 헤더 영역 */}
-            <div className="flex items-center justify-between mb-8">
-                <h1 className="text-3xl font-bold text-gray-800">PostHub</h1>
-                {isLoggedIn ? (
-                    <button onClick={handleLogout} className="px-4 py-2 text-sm font-bold text-white bg-red-500 rounded hover:bg-red-600">
-                        로그아웃
-                    </button>
-                ) : (
-                    <button onClick={() => navigate('/login')} className="px-4 py-2 text-sm font-bold text-white bg-blue-500 rounded hover:bg-blue-600">
-                        로그인하기
-                    </button>
-                )}
-            </div>
-
-            {/* 검색창: 전체 게시판을 대상으로 하므로 게시판 탭 UI와 별개로 둔다 */}
-            <div className="mb-6">
-                <SearchBox />
-            </div>
-
+        <Layout>
             {/* 얇은 테두리와 이름이 명확히 보이는 게시판 탭 영역 */}
-            <div className="flex items-center pb-4 mb-6 space-x-3 border-b overflow-x-auto">
-                {boards.length === 0 && <span className="text-sm text-gray-500">생성된 게시판이 없습니다. 우측 버튼을 눌러 추가해보세요!</span>}
+            <div className="flex items-center pb-4 mb-6 space-x-3 border-b border-border overflow-x-auto">
+                {boards.length === 0 && (
+                    <span className="text-sm text-fg-muted">생성된 게시판이 없습니다. 우측 버튼을 눌러 추가해보세요!</span>
+                )}
 
                 {boards.map((board) => (
                     <div
                         key={board.id}
-                        className={`flex items-center px-4 py-2 border rounded-md transition-colors ${
+                        className={`flex items-center px-4 py-2 rounded-md transition-colors ${
                             activeBoardId === board.id
-                                ? 'bg-blue-50 border-blue-500 text-blue-700'
-                                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                                ? 'bg-accent-subtle text-accent'
+                                : 'text-fg-muted hover:bg-surface'
                         }`}
                     >
                         {/* 👇 [수정완료] 화면에 띄울 때도 board.boardName 사용! */}
                         <span
                             className="font-medium cursor-pointer whitespace-nowrap"
-                            onClick={() => setActiveBoardId(board.id)}
+                            onClick={() => selectBoard(board.id)}
                         >
                             {board.boardName}
                         </span>
 
                         {/* 관리자 & 현재 선택된 탭에만 수정/삭제 버튼 노출 */}
                         {isAdmin && activeBoardId === board.id && (
-                            <div className="flex items-center ml-3 space-x-2 border-l border-gray-300 pl-2">
+                            <div className="flex items-center ml-3 space-x-2 border-l border-border pl-2">
                                 <button
-                                    onClick={() => handleUpdateBoard(board.id, board.boardName)}
-                                    className="text-xs text-gray-400 hover:text-blue-600 transition"
+                                    onClick={() => openRename(board.id, board.boardName)}
+                                    className="text-xs text-fg-subtle hover:text-accent transition"
+                                    aria-label="게시판 이름 수정"
                                     title="게시판 이름 수정"
                                 >
                                     ✏️
                                 </button>
                                 <button
-                                    onClick={() => handleDeleteBoard(board.id, board.boardName)}
-                                    className="text-xs text-gray-400 hover:text-red-600 transition"
+                                    onClick={() => openDelete(board.id, board.boardName)}
+                                    className="text-xs text-fg-subtle hover:text-danger transition"
+                                    aria-label="게시판 삭제"
                                     title="게시판 삭제"
                                 >
                                     ❌
@@ -228,12 +257,14 @@ const BoardPage = () => {
 
                 {/* 관리자일 때만 '+ 새 게시판' 생성 버튼 */}
                 {isAdmin && (
-                    <button
-                        onClick={handleCreateBoard}
-                        className="px-4 py-2 text-sm font-bold text-gray-500 bg-white border border-dashed border-gray-400 rounded-md whitespace-nowrap hover:bg-gray-50 hover:text-gray-800"
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={openCreate}
+                        className="whitespace-nowrap"
                     >
                         + 새 게시판
-                    </button>
+                    </Button>
                 )}
             </div>
 
@@ -250,15 +281,52 @@ const BoardPage = () => {
             {/* 글쓰기 버튼 */}
             {isLoggedIn && activeBoardId && (
                 <div className="flex justify-end mt-4">
-                    <button
-                        onClick={() => navigate(`/boards/${activeBoardId}/write`)}
-                        className="px-4 py-2 font-bold text-white bg-blue-600 rounded hover:bg-blue-700"
-                    >
+                    <Button onClick={() => navigate(`/boards/${activeBoardId}/write`)}>
                         글쓰기
-                    </button>
+                    </Button>
                 </div>
             )}
-        </div>
+
+            <Dialog
+                open={dialog.kind === 'create' || dialog.kind === 'rename'}
+                title={dialog.kind === 'rename' ? '게시판 이름 바꾸기' : '새 게시판 만들기'}
+                onClose={closeDialog}
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={closeDialog}>취소</Button>
+                        <Button onClick={dialog.kind === 'rename' ? submitRename : submitCreate}>
+                            {dialog.kind === 'rename' ? '변경' : '만들기'}
+                        </Button>
+                    </>
+                }
+            >
+                <Field label="게시판 이름" htmlFor="boardName">
+                    <Input
+                        id="boardName"
+                        value={boardName}
+                        onChange={(e) => setBoardName(e.target.value)}
+                        placeholder="예: 자유게시판"
+                    />
+                </Field>
+            </Dialog>
+
+            <Dialog
+                open={dialog.kind === 'delete'}
+                title="게시판을 삭제할까요?"
+                description={
+                    dialog.kind === 'delete'
+                        ? `'${dialog.boardName}'을(를) 삭제합니다. 게시글이 하나라도 남아 있으면 삭제되지 않습니다.`
+                        : undefined
+                }
+                onClose={closeDialog}
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={closeDialog}>취소</Button>
+                        <Button variant="danger" onClick={submitDelete}>삭제</Button>
+                    </>
+                }
+            />
+        </Layout>
     );
 };
 

@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# 브레인스토밍 목업 (설계 중 브라우저 컴패니언이 생성)
+.superpowers/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

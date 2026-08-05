@@ -3,6 +3,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import api, { errorMessage } from '../api/axios';
 import { CONTENT_MAX, TITLE_MAX } from '../constants/postLimits';
+import Layout from '../components/Layout';
+import { Button } from '../components/ui/Button';
+import { Field } from '../components/ui/Field';
+import { Input } from '../components/ui/Input';
+import { Textarea } from '../components/ui/Textarea';
+import { toast } from '../components/ui/toastStore';
+import { validatePost } from './postFormValidation';
+import type { PostErrors } from './postFormValidation';
 
 const PostEditPage = () => {
     // URL에서 수정할 게시글 번호를 가져옵니다.
@@ -16,6 +24,7 @@ const PostEditPage = () => {
     // 제목과 내용을 관리하는 상태입니다. (기존 데이터가 있으면 그걸 초기값으로 씁니다)
     const [title, setTitle] = useState(existingPost?.title || '');
     const [content, setContent] = useState(existingPost?.content || '');
+    const [errors, setErrors] = useState<PostErrors>({});
 
     // 만약 새로고침 등으로 기존 데이터가 날아갔다면 다시 서버에서 불러옵니다.
     useEffect(() => {
@@ -26,7 +35,7 @@ const PostEditPage = () => {
                     setTitle(response.data.title);
                     setContent(response.data.content);
                 } catch (error) {
-                    alert('데이터를 불러올 수 없습니다.');
+                    toast.error(errorMessage(error, '데이터를 불러올 수 없습니다.'));
                     navigate(-1);
                 }
             };
@@ -38,10 +47,9 @@ const PostEditPage = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!title.trim() || !content.trim()) {
-            alert('제목과 내용을 모두 입력해주세요.');
-            return;
-        }
+        const nextErrors = validatePost(title, content);
+        setErrors(nextErrors);
+        if (Object.keys(nextErrors).length > 0) return;
 
         try {
             /**
@@ -53,58 +61,57 @@ const PostEditPage = () => {
                 content: content
             });
 
-            alert('게시글이 성공적으로 수정되었습니다.');
+            toast.success('게시글을 수정했습니다.');
             navigate(`/posts/${postId}`); // 수정이 끝나면 다시 상세 페이지로 돌아갑니다.
         } catch (error) {
             console.error('글 수정 에러:', error);
-            alert(errorMessage(error, '글 수정에 실패했습니다.'));
+            toast.error(errorMessage(error, '글 수정에 실패했습니다.'));
         }
     };
 
     return (
-        <div className="max-w-4xl px-4 py-8 mx-auto">
-            <h1 className="mb-6 text-2xl font-bold">게시글 수정하기</h1>
+        <Layout>
+            <h1 className="mb-6 text-2xl font-bold text-fg">게시글 수정하기</h1>
 
-            <form onSubmit={handleSubmit} className="p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
-                <div className="mb-4">
-                    <label className="block mb-2 text-sm font-bold text-gray-700">제목</label>
-                    <input
+            {/* noValidate는 LoginPage 주석 참고. */}
+            <form
+                onSubmit={handleSubmit}
+                aria-label="게시글 수정"
+                noValidate
+                className="p-6 border border-border rounded-lg bg-bg space-y-4"
+            >
+                <Field label="제목" htmlFor="title" error={errors.title}>
+                    <Input
+                        id="title"
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         maxLength={TITLE_MAX}
-                        className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow-appearance-none focus:outline-none focus:shadow-outline"
+                        invalid={Boolean(errors.title)}
+                        aria-describedby={errors.title ? 'title-error' : undefined}
                     />
-                </div>
+                </Field>
 
-                <div className="mb-6">
-                    <label className="block mb-2 text-sm font-bold text-gray-700">내용</label>
-                    <textarea
+                <Field label="내용" htmlFor="content" error={errors.content}>
+                    <Textarea
+                        id="content"
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         maxLength={CONTENT_MAX}
                         rows={10}
-                        className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow-appearance-none focus:outline-none focus:shadow-outline resize-none"
+                        invalid={Boolean(errors.content)}
+                        aria-describedby={errors.content ? 'content-error' : undefined}
                     />
-                </div>
+                </Field>
 
-                <div className="flex items-center justify-end space-x-4">
-                    <button
-                        type="button"
-                        onClick={() => navigate(-1)}
-                        className="px-4 py-2 font-bold text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
-                    >
+                <div className="flex items-center justify-end gap-2">
+                    <Button variant="secondary" onClick={() => navigate(-1)}>
                         취소
-                    </button>
-                    <button
-                        type="submit"
-                        className="px-4 py-2 font-bold text-white bg-blue-600 rounded hover:bg-blue-700"
-                    >
-                        수정 완료
-                    </button>
+                    </Button>
+                    <Button type="submit">수정 완료</Button>
                 </div>
             </form>
-        </div>
+        </Layout>
     );
 };
 
