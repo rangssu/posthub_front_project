@@ -10,6 +10,19 @@ interface PostTableProps {
 const headCell = 'pb-2 text-[10px] font-medium uppercase tracking-wider text-fg-subtle';
 
 /*
+ * 열 폭을 직접 정한다. table-layout: auto에 맡기면 폭이 '내용 길이'로 정해져서,
+ * 형식이 고정된 날짜가 가장 넓어지고 정작 길이가 들쭉날쭉한 제목이 가장 좁아진다.
+ * 브라우저에서 재 보니 864px 표에서 제목 104px / 작성일 292px였다.
+ *
+ * 제목 셀에 max-w-0을 주면 잘리기는 한다(auto 레이아웃이 그 열을 최소폭으로 밀어낸다).
+ * 다만 그건 '좁아진 결과로 잘리는' 것이라 폭 배분은 여전히 뒤집힌 채다.
+ * table-fixed로 바꾸고 제목에 절반을 준다.
+ */
+const titleColumn = 'w-1/2';
+const metaColumn = 'w-[18%]';
+const countColumn = 'w-[7%]';
+
+/*
  * 좁은 화면에서는 행을 블록으로 바꿔 제목 + 메타 한 줄로 접는다.
  * 마크업은 한 벌이고 CSS만 분기한다.
  */
@@ -22,14 +35,14 @@ const PostTable = ({ posts, emptyMessage, onRowClick }: PostTableProps) => {
     }
 
     return (
-        <table className="w-full border-collapse">
+        <table className="w-full table-fixed border-collapse">
             <thead className="max-sm:hidden">
                 <tr className="border-b border-border">
-                    <th className={`${headCell} text-left`}>제목</th>
-                    <th className={`${headCell} text-left`}>작성자</th>
-                    <th className={`${headCell} text-left`}>작성일</th>
-                    <th className={`${headCell} text-right`}>조회</th>
-                    <th className={`${headCell} text-right`}>댓글</th>
+                    <th className={`${headCell} ${titleColumn} text-left`}>제목</th>
+                    <th className={`${headCell} ${metaColumn} text-left`}>작성자</th>
+                    <th className={`${headCell} ${metaColumn} text-left`}>작성일</th>
+                    <th className={`${headCell} ${countColumn} text-right`}>조회</th>
+                    <th className={`${headCell} ${countColumn} text-right`}>댓글</th>
                 </tr>
             </thead>
             <tbody>
@@ -39,7 +52,7 @@ const PostTable = ({ posts, emptyMessage, onRowClick }: PostTableProps) => {
                         onClick={() => onRowClick(post.id)}
                         className="cursor-pointer border-b border-divider hover:bg-surface max-sm:block max-sm:py-3"
                     >
-                        <td className="max-w-0 py-3 pr-4 max-sm:block max-sm:max-w-none max-sm:p-0 max-sm:pb-1">
+                        <td className="py-3 pr-4 max-sm:block max-sm:p-0 max-sm:pb-1">
                             <span
                                 title={post.title}
                                 className="block truncate text-sm font-medium text-fg"
